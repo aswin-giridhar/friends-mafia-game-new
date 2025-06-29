@@ -1046,6 +1046,61 @@ socket.on("role-assigned", (data) => {
     }
 });
 
+// Handle night action confirmations
+socket.on("night-action-confirmed", (data) => {
+    showNotification(data.message, 'success', 5000);
+});
+
+// Handle private night information
+socket.on("private-night-info", (data) => {
+    showPrivateInformation(data.role, data.info);
+});
+
+// Function to display private role-specific information
+function showPrivateInformation(role, info) {
+    let title = "";
+    let message = "";
+    let type = "info";
+    
+    switch (role) {
+        case "detective":
+            title = "🔍 Investigation Result";
+            message = info.message;
+            type = info.isMafia ? "warning" : "success";
+            break;
+        case "doctor":
+            title = "💊 Protection Result";
+            message = info.message;
+            type = info.successful ? "success" : "info";
+            break;
+        case "mafia":
+            title = "🔴 Mafia Information";
+            message = info.message;
+            type = "warning";
+            break;
+        default:
+            title = "Private Information";
+            message = info.message;
+    }
+    
+    // Show as a prominent notification
+    showNotification(`${title}: ${message}`, type, 10000);
+    
+    // Also update dialogue box with private info
+    updateDialogue(`[PRIVATE] ${title}: ${message}`);
+    
+    // Store private info for reference
+    if (!window.playerData.privateInfo) {
+        window.playerData.privateInfo = [];
+    }
+    window.playerData.privateInfo.push({
+        round: parseInt(currentRound.textContent),
+        role: role,
+        info: info,
+        timestamp: new Date().toLocaleTimeString()
+    });
+}
+
 socket.on("game-restarted", (data) => {
     // Hide game results modal
     const modal = document.getElementById("game-results-modal");

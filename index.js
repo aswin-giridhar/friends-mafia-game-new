@@ -432,84 +432,134 @@ function handlePhaseEnd() {
 
 function processNightActions() {
     let narrative = `**Round ${gameState.round} - Night Results:**\n\n`;
+    let privateInfo = new Map(); // Store role-specific private information
 
-    // Mafia action (AI chooses randomly among alive non-mafia)
-    const aliveMafia = gameState.aiPersonas.filter(
-        (p) => p.isAlive && p.role === "mafia",
-    );
-    const aliveTargets = gameState.alivePlayers.filter(
-        (p) => p.role !== "mafia",
-    );
-
-    if (aliveMafia.length > 0 && aliveTargets.length > 0) {
-        const target =
-            aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
-        gameState.mafiaTarget = target;
-        narrative += `🔪 The mafia targeted ${target.name || target.playerName}...\n`;
+    // Process player night actions first
+    const playerActions = Array.from(gameState.nightActions.values());
+    
+    // Determine mafia target (prioritize player action if mafia)
+    let mafiaTarget = null;
+    const playerMafiaAction = playerActions.find(action => action.role === "mafia");
+    
+    if (playerMafiaAction) {
+        // Player is mafia and chose target
+        const target = gameState.alivePlayers.find(p => 
+            (p.name || p.playerName) === playerMafiaAction.target
+        );
+        mafiaTarget = target;
+        narrative += `🔪 The mafia targeted ${playerMafiaAction.target}...\n`;
+    } else {
+        // AI mafia chooses target
+        const aliveMafia = gameState.aiPersonas.filter(p => p.isAlive && p.role === "mafia");
+        const aliveTargets = gameState.alivePlayers.filter(p => p.role !== "mafia");
+        
+        if (aliveMafia.length > 0 && aliveTargets.length > 0) {
+            mafiaTarget = aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
+            narrative += `🔪 The mafia targeted ${mafiaTarget.name || mafiaTarget.playerName}...\n`;
+        }
     }
+    gameState.mafiaTarget = mafiaTarget;
 
-    // Doctor action (AI chooses randomly)
-    const aliveDoctor = gameState.aiPersonas.find(
-        (p) => p.isAlive && p.role === "doctor",
-    );
-    if (aliveDoctor) {
-        const saveTarget =
-            gameState.alivePlayers[
-                Math.floor(Math.random() * gameState.alivePlayers.length)
-            ];
-        gameState.doctorSave = saveTarget;
+    // Determine doctor protection (prioritize player action if doctor)
+    let doctorSave = null;
+    const playerDoctorAction = playerActions.find(action => action.role === "doctor");
+    
+    if (playerDoctorAction) {
+        // Player is doctor and chose protection target
+        const target = gameState.alivePlayers.find(p => 
+            (p.name || p.playerName) === playerDoctorAction.target
+        );
+        doctorSave = target;
         narrative += `💊 The doctor protected someone...\n`;
+        
+        // Send private info to doctor player
+        privateInfo.set("doctor", {
+            message: `You protected ${playerDoctorAction.target}`,
+            target: playerDoctorAction.target,
+            successful: mafiaTarget && (mafiaTarget.name || mafiaTarget.playerName) === playerDoctorAction.target
+        });
+    } else {
+        // AI doctor chooses protection
+        const aliveDoctor = gameState.aiPersonas.find(p => p.isAlive && p.role === "doctor");
+        if (aliveDoctor) {
+            doctorSave = gameState.alivePlayers[Math.floor(Math.random() * gameState.alivePlayers.length)];
+            narrative += `💊 The doctor protected someone...\n`;
+        }
     }
+    gameState.doctorSave = doctorSave;
 
-    // Detective action (AI investigates randomly)
-    const aliveDetective = gameState.aiPersonas.find(
-        (p) => p.isAlive && p.role === "detective",
-    );
-    if (aliveDetective) {
-        const checkTarget =
-            gameState.alivePlayers[
-                Math.floor(Math.random() * gameState.alivePlayers.length)
-            ];
-        gameState.detectiveCheck = checkTarget;
+    // Determine detective investigation (prioritize player action if detective)
+    let detectiveCheck = null;
+    const playerDetectiveAction = playerActions.find(action => action.role === "detective");
+    
+    if (playerDetectiveAction) {
+        // Player is detective and chose investigation target
+        const target = gameState.alivePlayers.find(p => 
+            (p.name || p.playerName) === playerDetectiveAction.target
+        );
+        detectiveCheck = target;
         narrative += `🔍 The detective investigated someone...\n`;
+        
+        // Send private info to detective player
+        privateInfo.set("detective", {
+            target: playerDetectiveAction.target,
+            isMafia: target ? target.role === "mafia" : false,
+            message: target ? 
+                `Investigation Result: ${playerDetectiveAction.target} is ${target.role === "mafia" ? "MAFIA" : "INNOCENT"}` :
+                `Investigation failed - target not found`
+        });
+    } else {
+        // AI detective investigates
+        const aliveDetective = gameState.aiPersonas.find(p => p.isAlive && p.role === "detective");
+        if (aliveDetective) {
+            detectiveCheck = gameState.alivePlayers[Math.floor(Math.random() * gameState.alivePlayers.length)];
+            narrative += `🔍 The detective investigated someone...\n`;
+        }
     }
+    gameState.detectiveCheck = detectiveCheck;
 
     // Resolve actions
     let eliminated = null;
-    if (
-        gameState.mafiaTarget &&
-        gameState.mafiaTarget !== gameState.doctorSave
-    ) {
-        eliminated = gameState.mafiaTarget;
+    if (mafiaTarget && mafiaTarget !== doctorSave) {
+        eliminated = mafiaTarget;
         eliminated.isAlive = false;
         gameState.eliminatedPlayers.push(eliminated);
         narrative += `💀 ${eliminated.name || eliminated.playerName} was eliminated!\n`;
-    } else if (
-        gameState.mafiaTarget &&
-        gameState.mafiaTarget === gameState.doctorSave
-    ) {
+    } else if (mafiaTarget && mafiaTarget === doctorSave) {
         narrative += `🛡️ The doctor's protection saved a life!\n`;
+        
+        // Update doctor private info if player is doctor
+        if (privateInfo.has("doctor")) {
+            const doctorInfo = privateInfo.get("doctor");
+            doctorInfo.successful = true;
+            doctorInfo.message += " - Your protection was successful!";
+        }
     }
 
     updateAlivePlayers();
+
+    // Clear night actions for next round
+    gameState.nightActions.clear();
 
     // Check win conditions
     if (checkWinConditions()) {
         return;
     }
 
-    // Start day phase
+    // Send public night results to all players
     io.emit("night-results", {
         narrative: narrative,
-        eliminated: eliminated,
-        detectiveResult: gameState.detectiveCheck
-            ? {
-                  target:
-                      gameState.detectiveCheck.name ||
-                      gameState.detectiveCheck.playerName,
-                  isMafia: gameState.detectiveCheck.role === "mafia",
-              }
-            : null,
+        eliminated: eliminated
+    });
+
+    // Send private information to specific players
+    gameState.players.forEach((player, playerId) => {
+        if (privateInfo.has(player.role)) {
+            io.to(playerId).emit("private-night-info", {
+                role: player.role,
+                info: privateInfo.get(player.role)
+            });
+        }
     });
 
     startPhase("discussion", GAME_CONFIG.discussionDuration);
@@ -833,6 +883,35 @@ io.on("connection", (socket) => {
         io.emit('chat-history-update', mcpManager.getGameHistory());
 
         setTimeout(() => io.emit("clear-speaker"), 3000);
+    });
+
+    // Handle player night actions
+    socket.on("night-action", (data) => {
+        if (gameState.phase !== "night") {
+            socket.emit("error", "Night actions are only allowed during night phase!");
+            return;
+        }
+
+        const { role, target, playerId } = data;
+        const player = gameState.players.get(playerId);
+
+        if (player && player.isAlive && player.role === role) {
+            // Store the player's night action
+            gameState.nightActions.set(playerId, {
+                role: role,
+                target: target,
+                playerName: player.playerName
+            });
+
+            // Send confirmation to player
+            socket.emit("night-action-confirmed", {
+                role: role,
+                target: target,
+                message: `Your ${role} action has been submitted.`
+            });
+
+            console.log(`Player ${player.playerName} (${role}) submitted night action: ${target}`);
+        }
     });
 
     // Handle voting (only during voting phase)

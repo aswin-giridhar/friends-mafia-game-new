@@ -44,6 +44,7 @@
                 <button id="start-game-btn" class="mini-btn">🎮 Start Game</button>
                 <button id="toggle-chat-btn" class="mini-btn">💬 Chat</button>
                 <button id="audio-settings-btn" class="mini-btn">🔊 Audio</button>
+                <button id="voting-results-btn" class="mini-btn">🗳️ Voting Results</button>
                 <button id="end-game-btn" class="mini-btn" style="display:none;">🛑 End Game</button>
             </div>
         </div>
@@ -137,6 +138,51 @@
             </div>
         </div>
 
+        <!-- Voting Results Modal -->
+        <div id="voting-results-modal" class="modal" style="display:none;">
+            <div class="modal-content voting-results">
+                <h2 id="voting-results-title">🗳️ Voting Results</h2>
+                <div id="voting-results-content">
+                    <div class="elimination-announcement">
+                        <h3 id="eliminated-player-name">Player Eliminated</h3>
+                        <p id="eliminated-player-role">Role: Unknown</p>
+                        <p id="elimination-vote-count">Votes: 0</p>
+                    </div>
+                    <div class="vote-breakdown">
+                        <h4>📊 Vote Breakdown:</h4>
+                        <div id="vote-breakdown-list"></div>
+                    </div>
+                    <div class="voting-details">
+                        <h4>👥 Who Voted for Whom:</h4>
+                        <div id="voting-details-list"></div>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button id="close-voting-results-btn" class="action-btn">✅ Continue Game</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voting History Modal -->
+        <div id="voting-history-modal" class="modal" style="display:none;">
+            <div class="modal-content voting-history">
+                <h2 id="voting-history-title">🗳️ All Voting Results</h2>
+                <div class="voting-history-header">
+                    <p>Review all voting rounds from this game</p>
+                </div>
+                <div id="voting-history-content" class="voting-history-content">
+                    <div class="no-votes-message">
+                        <p>No voting rounds completed yet.</p>
+                        <p>Voting results will appear here after each elimination.</p>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button id="close-voting-history-btn" class="action-btn">✅ Close</button>
+                    <button id="export-voting-history-btn" class="action-btn">💾 Export</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Audio Settings Panel -->
         <div id="audio-settings-panel" class="audio-settings-panel">
             <div class="audio-header">
@@ -178,12 +224,12 @@
         window.playerData = {
             id: '<%= player.id %>',
             name: '<%= player.playerName %>',
-            isAlive: <%= player.isAlive || true %>
+            isAlive: <%= JSON.stringify(player.isAlive || true) %>
         };
         window.gameState = {
             phase: '<%= gameState.phase %>',
-            round: <%= gameState.round %>,
-            alivePlayers: <%= gameState.alivePlayers %>
+            round: <%= JSON.stringify(gameState.round) %>,
+            alivePlayers: <%= JSON.stringify(gameState.alivePlayers) %>
         };
     </script>
 

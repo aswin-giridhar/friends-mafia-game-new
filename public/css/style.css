@@ -287,13 +287,17 @@ body {
 }
 
 .dialogue-box {
-  background: rgba(255,215,0,0.1);
+  background: rgba(0, 0, 0, 0.8);
   border: 2px solid #ffd700;
   border-radius: 10px;
   padding: 15px;
   margin-bottom: 15px;
   min-height: 40px;
-  font-size: 14px;
+  font-size: 16px;
+  color: #f4e4bc;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .player-actions {
@@ -592,6 +596,227 @@ body {
     color: #f4e4bc;
     margin-bottom: 30px;
     line-height: 1.6;
+}
+
+/* Voting Results Modal Styles */
+.voting-results {
+    max-width: 600px;
+    width: 95%;
+}
+
+.elimination-announcement {
+    background: rgba(244, 67, 54, 0.1);
+    border: 2px solid #F44336;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.elimination-announcement h3 {
+    color: #F44336;
+    margin: 0 0 10px 0;
+    font-size: 1.5rem;
+}
+
+.elimination-announcement p {
+    margin: 5px 0;
+    color: #f4e4bc;
+}
+
+.vote-breakdown, .voting-details {
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid #ffd700;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.vote-breakdown h4, .voting-details h4 {
+    color: #ffd700;
+    margin: 0 0 15px 0;
+    font-size: 1.1rem;
+}
+
+.vote-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    border-left: 4px solid #ffd700;
+}
+
+.vote-item.eliminated {
+    border-left-color: #F44336;
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.vote-item-name {
+    font-weight: bold;
+    color: #f4e4bc;
+}
+
+.vote-item-count {
+    color: #ffd700;
+    font-weight: bold;
+    background: rgba(255, 215, 0, 0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.voting-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    margin: 3px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.voter-name {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.voted-for {
+    color: #ff6b6b;
+    font-style: italic;
+}
+
+.arrow {
+    color: #ffd700;
+    margin: 0 10px;
+}
+
+/* Voting History Modal Styles */
+.voting-history {
+    max-width: 700px;
+    width: 95%;
+    max-height: 80vh;
+}
+
+.voting-history-header {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #f4e4bc;
+}
+
+.voting-history-content {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.no-votes-message {
+    text-align: center;
+    color: #ccc;
+    font-style: italic;
+    padding: 40px 20px;
+}
+
+.voting-round {
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid #ffd700;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    padding: 20px;
+}
+
+.voting-round-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.round-title {
+    color: #ffd700;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.round-timestamp {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.round-elimination {
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid #F44336;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.eliminated-player {
+    color: #F44336;
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin: 0 0 5px 0;
+}
+
+.eliminated-role {
+    color: #f4e4bc;
+    margin: 0;
+}
+
+.round-vote-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.round-voting-details {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.round-voting-details h5 {
+    color: #ffd700;
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+}
+
+.voting-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+.voting-detail-item-small {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+/* Voting history scrollbar */
+.voting-history-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.voting-history-content::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.1);
+}
+
+.voting-history-content::-webkit-scrollbar-thumb {
+    background: #ffd700;
+    border-radius: 4px;
+}
+
+.voting-history-content::-webkit-scrollbar-thumb:hover {
+    background: #ffed4e;
 }
 
 .modal-buttons {

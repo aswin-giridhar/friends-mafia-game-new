@@ -8,6 +8,7 @@ let currentGamePhase = "lobby";
 let playerVoted = false;
 let chatHistory = [];
 let isChatOpen = false;
+let votingHistory = [];
 
 // Initialize speech recognition
 if ("webkitSpeechRecognition" in window) {
@@ -98,6 +99,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (testVoiceBtn) {
         testVoiceBtn.addEventListener('click', testCharacterVoice);
+    }
+
+    // Voting results/history controls
+    const votingResultsBtn = document.getElementById('voting-results-btn');
+    const closeVotingHistoryBtn = document.getElementById('close-voting-history-btn');
+    const exportVotingHistoryBtn = document.getElementById('export-voting-history-btn');
+
+    if (votingResultsBtn) {
+        votingResultsBtn.addEventListener('click', showVotingHistory);
+    }
+    if (closeVotingHistoryBtn) {
+        closeVotingHistoryBtn.addEventListener('click', closeVotingHistory);
+    }
+    if (exportVotingHistoryBtn) {
+        exportVotingHistoryBtn.addEventListener('click', exportVotingHistory);
     }
 });
 
@@ -529,13 +545,11 @@ socket.on("player-eliminated", (data) => {
     );
     markPlayerEliminated(data.playerName);
 
-    // Show vote breakdown
-    setTimeout(() => {
-        const breakdown = data.voteBreakdown
-            .map(([name, votes]) => `${name}: ${votes}`)
-            .join(", ");
-        updateDialogue(`Vote results: ${breakdown}`);
-    }, 3000);
+    // Add to voting history
+    addVotingRound(data);
+
+    // Show voting results modal
+    showVotingResults(data);
 });
 
 socket.on("vote-cast", (data) => {
@@ -941,6 +955,162 @@ function showConfirmation(title, message, onConfirm, onCancel = null) {
     });
     
     modal.style.display = 'flex';
+}
+
+// Voting Results Modal Functions
+function showVotingResults(data) {
+    const modal = document.getElementById('voting-results-modal');
+    const title = document.getElementById('voting-results-title');
+    const eliminatedName = document.getElementById('eliminated-player-name');
+    const eliminatedRole = document.getElementById('eliminated-player-role');
+    const eliminationVoteCount = document.getElementById('elimination-vote-count');
+    const voteBreakdownList = document.getElementById('vote-breakdown-list');
+    const votingDetailsList = document.getElementById('voting-details-list');
+
+    // Set elimination info
+    eliminatedName.textContent = `${data.playerName} Eliminated`;
+    eliminatedRole.textContent = `Role: ${data.role.toUpperCase()}`;
+    eliminationVoteCount.textContent = `Total Votes: ${data.votes}`;
+
+    // Create vote breakdown (who got how many votes)
+    voteBreakdownList.innerHTML = '';
+    data.voteBreakdown.forEach(([playerName, votes]) => {
+        const voteItem = document.createElement('div');
+        voteItem.className = `vote-item ${playerName === data.playerName ? 'eliminated' : ''}`;
+        voteItem.innerHTML = `
+            <span class="vote-item-name">${playerName}</span>
+            <span class="vote-item-count">${votes} vote${votes !== 1 ? 's' : ''}</span>
+        `;
+        voteBreakdownList.appendChild(voteItem);
+    });
+
+    // Create voting details (who voted for whom) - this would need to be passed from server
+    votingDetailsList.innerHTML = '';
+    if (data.votingDetails) {
+        data.votingDetails.forEach(([voter, target]) => {
+            const detailItem = document.createElement('div');
+            detailItem.className = 'voting-detail-item';
+            detailItem.innerHTML = `
+                <span class="voter-name">${voter}</span>
+                <span class="arrow">→</span>
+                <span class="voted-for">${target}</span>
+            `;
+            votingDetailsList.appendChild(detailItem);
+        });
+    } else {
+        // Fallback if detailed voting info not available
+        votingDetailsList.innerHTML = '<p style="color: #ccc; font-style: italic;">Detailed voting information not available</p>';
+    }
+
+    // Show modal
+    modal.style.display = 'flex';
+
+    // Auto-close after 8 seconds
+    setTimeout(() => {
+        if (modal.style.display === 'flex') {
+            modal.style.display = 'none';
+        }
+    }, 8000);
+}
+
+// Close voting results modal
+document.getElementById('close-voting-results-btn').addEventListener('click', () => {
+    const modal = document.getElementById('voting-results-modal');
+    modal.style.display = 'none';
+});
+
+// Voting History Functions
+function showVotingHistory() {
+    const modal = document.getElementById('voting-history-modal');
+    const content = document.getElementById('voting-history-content');
+    
+    if (votingHistory.length === 0) {
+        content.innerHTML = `
+            <div class="no-votes-message">
+                <p>No voting rounds completed yet.</p>
+                <p>Voting results will appear here after each elimination.</p>
+            </div>
+        `;
+    } else {
+        content.innerHTML = votingHistory.map((round, index) => `
+            <div class="voting-round">
+                <div class="voting-round-header">
+                    <h3 class="round-title">Round ${round.round} - Voting Results</h3>
+                    <span class="round-timestamp">${round.timestamp}</span>
+                </div>
+                <div class="round-elimination">
+                    <h4 class="eliminated-player">${round.eliminatedPlayer} Eliminated</h4>
+                    <p class="eliminated-role">Role: ${round.eliminatedRole.toUpperCase()}</p>
+                </div>
+                <div class="round-vote-breakdown">
+                    ${round.voteBreakdown.map(([name, votes]) => `
+                        <div class="vote-item ${name === round.eliminatedPlayer ? 'eliminated' : ''}">
+                            <span class="vote-item-name">${name}</span>
+                            <span class="vote-item-count">${votes} vote${votes !== 1 ? 's' : ''}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="round-voting-details">
+                    <h5>Who Voted for Whom:</h5>
+                    <div class="voting-detail-grid">
+                        ${round.votingDetails.map(([voter, target]) => `
+                            <div class="voting-detail-item-small">
+                                <span class="voter-name">${voter}</span> → <span class="voted-for">${target}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeVotingHistory() {
+    const modal = document.getElementById('voting-history-modal');
+    modal.style.display = 'none';
+}
+
+function exportVotingHistory() {
+    if (votingHistory.length === 0) {
+        showNotification('No voting history to export!', 'warning');
+        return;
+    }
+    
+    const exportText = votingHistory.map(round => {
+        const breakdown = round.voteBreakdown.map(([name, votes]) => `${name}: ${votes} votes`).join(', ');
+        const details = round.votingDetails.map(([voter, target]) => `${voter} → ${target}`).join(', ');
+        
+        return `Round ${round.round} (${round.timestamp})
+Eliminated: ${round.eliminatedPlayer} (${round.eliminatedRole})
+Vote Breakdown: ${breakdown}
+Voting Details: ${details}
+---`;
+    }).join('\n\n');
+    
+    const blob = new Blob([exportText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mafia-voting-history-${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showNotification('Voting history exported!', 'success');
+}
+
+function addVotingRound(data) {
+    const votingRound = {
+        round: parseInt(currentRound.textContent),
+        timestamp: new Date().toLocaleString(),
+        eliminatedPlayer: data.playerName,
+        eliminatedRole: data.role,
+        voteBreakdown: data.voteBreakdown,
+        votingDetails: data.votingDetails || []
+    };
+    
+    votingHistory.push(votingRound);
 }
 
 // Initialize button states

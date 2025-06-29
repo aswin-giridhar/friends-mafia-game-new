@@ -570,6 +570,7 @@ function processVotes() {
                 role: player.role,
                 votes: maxVotes,
                 voteBreakdown: Array.from(voteCount.entries()),
+                votingDetails: Array.from(gameState.votes.entries()),
             });
 
             // Check win conditions

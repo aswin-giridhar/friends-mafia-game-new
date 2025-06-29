@@ -1,0 +1,144 @@
+Mafia Game Rules and Overview - Single Player vs AI
+Game Concept
+A digital adaptation of Mafia where you (the human player) compete against 6 AI characters in a social deduction game. Your role is randomly assigned each game - you could be a townsperson trying to identify mafia, or you could be mafia trying to eliminate townspeople without being caught.
+Game Setup
+
+Total Players: 7 (You + 6 AI characters)
+Roles: All players are secretly assigned roles - some are innocent "townspeople" and others are "mafia"
+Moderator: Computer system manages all game flow, announcements, and rule enforcement
+
+Core Roles
+Mafia/Wolves
+
+Goal: Eliminate all townspeople without being discovered
+Abilities: Mafia members coordinate to vote and eliminate one townsperson each night
+Ratio: 2 mafia members out of 7 total players (could include you)
+If You're Mafia: You coordinate with 1 AI mafia partner to eliminate townspeople while blending in during day phases
+
+Townspeople/Villagers
+
+Goal: Identify and eliminate all mafia members through voting
+Abilities: Vote during day phases to eliminate suspected mafia
+Composition: 5 total townspeople (you might be one of them)
+
+Special Townsperson Roles (Recommended for 7-player game)
+
+Detective/Investigator: Can investigate one player each night to learn their role (you might be assigned this role)
+Doctor/Medic: Can protect one player each night from being eliminated (you might be assigned this role)
+Regular Townspeople: Standard townspeople with no special abilities (you might be assigned this role)
+
+Game Phases
+Night Phase
+
+Computer announces night phase begins
+If you're Mafia: You coordinate with your AI mafia partner to choose who to eliminate
+If you have a special town role (Detective/Doctor): You're prompted to make your action
+If you're a regular townsperson: You wait while others make their moves
+AI characters make their actions based on their roles and strategies
+Computer processes all actions and determines results
+
+Day Phase
+
+Computer announces night results (who was eliminated, any protected players, etc.)
+All remaining players (you + remaining AI) participate in discussion
+Your strategy depends on your role:
+
+If Townsperson: Analyze AI behavior, ask questions, make accusations to find mafia
+If Mafia: Blend in, deflect suspicion, help eliminate townspeople while appearing innocent
+
+
+AI characters respond with programmed personalities and strategies
+Voting phase: Everyone votes for who to eliminate
+Player with most votes is eliminated and their role is revealed
+Computer checks victory conditions
+
+Victory Conditions
+
+If you're a Townsperson: You win when all mafia members are eliminated (even if you don't survive)
+If you're Mafia: You win when mafia members equal or outnumber the remaining townspeople
+Game ends: When either all mafia are eliminated OR mafia reach parity with townspeople
+
+Key Game Mechanics
+Voting
+
+During day phase, you select who to vote for elimination via game interface
+AI characters vote based on their roles, personalities, and programmed strategies
+Majority vote eliminates the selected player (ties handled by computer rules)
+
+Communication Rules
+
+If you're Mafia: You can coordinate with your AI mafia partner during night phases
+If you're Townsperson: You participate in open day phase discussions only
+During day phases, you interact with AI characters through dialogue options
+AI characters respond based on their roles and programmed behaviors
+You must deduce roles based on AI behavior patterns, voting history, and responses
+
+Information Flow
+
+You receive information based on your role:
+
+All players: Night results, eliminations, role reveals when players die
+If you're Detective: Private investigation results each night
+If you're Doctor: Knowledge of who you protected and if it was successful
+If you're Mafia: Knowledge of who your mafia partner is and coordination during night kills
+
+
+
+Strategy Elements Based on Your Role
+If You're a Townsperson
+
+Observe AI Patterns: Look for suspicious behaviors, voting patterns, and responses
+Use Special Abilities: If Detective/Doctor, use information strategically without revealing your role too early
+Build Trust: Form alliances with other townspeople
+Question Suspects: Use dialogue to probe for inconsistencies in AI responses
+
+If You're Mafia
+
+Blend In: Act like a concerned townsperson during day phases
+Coordinate Strategically: Work with your AI mafia partner to eliminate key threats (especially Detective/Doctor)
+Misdirect Suspicion: Point fingers at innocent players to create confusion
+Survive Voting: Avoid drawing attention while helping eliminate townspeople
+Manage Information: Be careful not to reveal knowledge you shouldn't have as a "townsperson"
+
+Implementation Considerations for Single Player Code
+AI Character System
+
+Personalities: Each AI character needs distinct behavioral patterns and dialogue
+Role-based Decision Making: AI behavior changes based on their assigned role
+Mafia Coordination: AI mafia members need to coordinate automatically without player visibility
+Believable Responses: AI should respond realistically to accusations and questions
+
+Player Interface
+
+Role-Specific Actions: Interface adapts based on your assigned role
+
+Mafia: Night coordination with AI partner, target selection
+Detective: Investigation target selection, results display
+Doctor: Protection target selection, success notifications
+Regular Townsperson: Observation and discussion only
+
+
+Dialogue System: Options to question, accuse, or discuss with AI characters
+Voting Interface: Clear voting mechanism during day phases
+Information Display: Role-appropriate information (voting history, elimination results, special role info)
+
+Game Flow Management
+
+Automated Phases: Computer handles all timing and phase transitions
+Role Assignment: Balanced random assignment ensuring proper mafia/townspeople ratio
+AI Decision Processing: AI characters make decisions automatically based on their roles and strategies
+Victory Detection: Automatic win/loss condition checking
+
+Recommended Role Distribution for 7 Players:
+
+2 Mafia members (you could be one of them)
+1 Detective (you might be assigned this role)
+1 Doctor (you might be assigned this role)
+3 Regular Townspeople (you might be assigned this role)
+
+Random Role Assignment System
+
+Each game randomly assigns you one of the available roles
+AI characters fill the remaining roles automatically
+Role distribution remains balanced (2 mafia, 5 townspeople) regardless of your assignment
+Your gameplay experience changes dramatically based on your role assignment

@@ -234,7 +234,7 @@ class MCPManager {
         this.gameHistory = []; // Store all game conversations
     }
 
-    generateResponse(character, userInput, gameContext) {
+    async generateResponse(character, userInput, gameContext) {
         const characterData = friendsCharacters[character];
         const conversation = this.conversations.get(character) || [];
         
@@ -246,8 +246,32 @@ class MCPManager {
             speaker: gameContext.playerName || "Player"
         });
         
-        // Generate contextual response
+        // Try rule-based response generation first (default)
+        console.log(`Using rule-based response for ${character} (default)`);
         let response = this.selectContextualResponse(character, characterData, userInput, gameContext, conversation);
+        
+        // If rule-based response is successful and meaningful, use it
+        if (response && response.length > 10) {
+            console.log(`Successfully generated rule-based response for ${character}: ${response}`);
+        } else {
+            // Fallback to OpenAI only if rule-based fails or produces insufficient content
+            console.log(`Rule-based response insufficient for ${character}, falling back to OpenAI`);
+            const openAIResponse = await generateOpenAIDialogue(character, {
+                role: gameContext.role || "townsfolk",
+                topicType: "conversation",
+                target: gameContext.playerName,
+                content: userInput
+            });
+
+            // If OpenAI succeeds, use it; otherwise use rule-based anyway
+            if (openAIResponse) {
+                console.log(`Using OpenAI fallback response for ${character}: ${openAIResponse}`);
+                response = openAIResponse;
+            } else {
+                console.log(`OpenAI fallback failed for ${character}, using rule-based response anyway`);
+                // Keep the rule-based response even if it's short
+            }
+        }
         
         // Add AI response to conversation history
         conversation.push({ 
@@ -668,7 +692,44 @@ class AIDiscussionManager {
 
     // Generate character-specific dialogue based on personality
     async generateCharacterDialogue(speaker, topic) {
-        // Try OpenAI first for dynamic, contextual dialogue
+        // Try rule-based dialogue generation first (default)
+        console.log(`Using rule-based dialogue for ${speaker.name} (default)`);
+        const characterData = friendsCharacters[speaker.name];
+        let baseDialogue = topic.content;
+
+        // Customize dialogue based on character personality
+        let ruleBasedDialogue;
+        switch (speaker.name) {
+            case "Joey":
+                ruleBasedDialogue = this.joeyifyDialogue(baseDialogue, topic);
+                break;
+            case "Phoebe":
+                ruleBasedDialogue = this.phoebeifyDialogue(baseDialogue, topic);
+                break;
+            case "Chandler":
+                ruleBasedDialogue = this.chandlerifyDialogue(baseDialogue, topic);
+                break;
+            case "Rachel":
+                ruleBasedDialogue = this.rachelifyDialogue(baseDialogue, topic);
+                break;
+            case "Ross":
+                ruleBasedDialogue = this.rossifyDialogue(baseDialogue, topic);
+                break;
+            case "Monica":
+                ruleBasedDialogue = this.monicaifyDialogue(baseDialogue, topic);
+                break;
+            default:
+                ruleBasedDialogue = baseDialogue;
+        }
+
+        // If rule-based dialogue is successful and meaningful, use it
+        if (ruleBasedDialogue && ruleBasedDialogue.length > 10) {
+            console.log(`Successfully generated rule-based dialogue for ${speaker.name}: ${ruleBasedDialogue}`);
+            return ruleBasedDialogue;
+        }
+
+        // Fallback to OpenAI only if rule-based fails or produces insufficient content
+        console.log(`Rule-based dialogue insufficient for ${speaker.name}, falling back to OpenAI`);
         const openAIDialogue = await generateOpenAIDialogue(speaker.name, {
             role: speaker.role,
             topicType: topic.type,
@@ -676,34 +737,15 @@ class AIDiscussionManager {
             content: topic.content
         });
 
-        // If OpenAI succeeds, use it; otherwise fall back to rule-based
+        // If OpenAI succeeds, use it; otherwise return the rule-based result anyway
         if (openAIDialogue) {
-            console.log(`Using OpenAI dialogue for ${speaker.name}: ${openAIDialogue}`);
+            console.log(`Using OpenAI fallback dialogue for ${speaker.name}: ${openAIDialogue}`);
             return openAIDialogue;
         }
 
-        // Fallback to rule-based dialogue generation
-        console.log(`Falling back to rule-based dialogue for ${speaker.name}`);
-        const characterData = friendsCharacters[speaker.name];
-        let baseDialogue = topic.content;
-
-        // Customize dialogue based on character personality
-        switch (speaker.name) {
-            case "Joey":
-                return this.joeyifyDialogue(baseDialogue, topic);
-            case "Phoebe":
-                return this.phoebeifyDialogue(baseDialogue, topic);
-            case "Chandler":
-                return this.chandlerifyDialogue(baseDialogue, topic);
-            case "Rachel":
-                return this.rachelifyDialogue(baseDialogue, topic);
-            case "Ross":
-                return this.rossifyDialogue(baseDialogue, topic);
-            case "Monica":
-                return this.monicaifyDialogue(baseDialogue, topic);
-            default:
-                return baseDialogue;
-        }
+        // Final fallback to rule-based dialogue even if it's short
+        console.log(`OpenAI fallback failed for ${speaker.name}, using rule-based dialogue anyway`);
+        return ruleBasedDialogue || baseDialogue;
     }
 
     joeyifyDialogue(dialogue, topic) {

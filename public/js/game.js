@@ -41,9 +41,18 @@ const phaseInstructions = document.getElementById("phase-instructions");
 const actionStatus = document.getElementById("action-status");
 const aliveCount = document.getElementById("alive-count");
 
+// Audio system variables
+let backgroundMusic = null;
+let backgroundMusicVolume = 0.5;
+let characterVoiceVolume = 0.8;
+let isMusicPlaying = false;
+
 // Initialize game
 document.addEventListener("DOMContentLoaded", () => {
     updateUIForPhase(window.gameState.phase);
+    
+    // Initialize audio system
+    initializeAudioSystem();
     
     // Chat panel controls
     const toggleChatBtn = document.getElementById('toggle-chat-btn');
@@ -63,7 +72,171 @@ document.addEventListener("DOMContentLoaded", () => {
     if (exportChatBtn) {
         exportChatBtn.addEventListener('click', exportChat);
     }
+
+    // Audio settings controls
+    const audioSettingsBtn = document.getElementById('audio-settings-btn');
+    const closeAudioBtn = document.getElementById('close-audio-btn');
+    const backgroundVolumeSlider = document.getElementById('background-volume');
+    const characterVolumeSlider = document.getElementById('character-volume');
+    const toggleMusicBtn = document.getElementById('toggle-background-music');
+    const testVoiceBtn = document.getElementById('test-character-voice');
+
+    if (audioSettingsBtn) {
+        audioSettingsBtn.addEventListener('click', toggleAudioSettings);
+    }
+    if (closeAudioBtn) {
+        closeAudioBtn.addEventListener('click', closeAudioSettings);
+    }
+    if (backgroundVolumeSlider) {
+        backgroundVolumeSlider.addEventListener('input', updateBackgroundVolume);
+    }
+    if (characterVolumeSlider) {
+        characterVolumeSlider.addEventListener('input', updateCharacterVolume);
+    }
+    if (toggleMusicBtn) {
+        toggleMusicBtn.addEventListener('click', toggleBackgroundMusic);
+    }
+    if (testVoiceBtn) {
+        testVoiceBtn.addEventListener('click', testCharacterVoice);
+    }
 });
+
+// Audio system functions
+function initializeAudioSystem() {
+    backgroundMusic = document.getElementById('background-music');
+    
+    if (backgroundMusic) {
+        backgroundMusic.volume = backgroundMusicVolume;
+        
+        // Auto-play background music when user interacts with the page
+        document.addEventListener('click', startBackgroundMusic, { once: true });
+        document.addEventListener('keydown', startBackgroundMusic, { once: true });
+        
+        backgroundMusic.addEventListener('canplaythrough', () => {
+            console.log('Background music loaded successfully');
+        });
+        
+        backgroundMusic.addEventListener('error', (e) => {
+            console.error('Error loading background music:', e);
+            showNotification('Background music failed to load', 'warning');
+        });
+    }
+}
+
+function startBackgroundMusic() {
+    if (backgroundMusic && !isMusicPlaying) {
+        backgroundMusic.play().then(() => {
+            isMusicPlaying = true;
+            updateMusicButton();
+            showNotification('Background music started! 🎵', 'success', 2000);
+        }).catch((error) => {
+            console.error('Error playing background music:', error);
+            showNotification('Click anywhere to enable audio', 'info');
+        });
+    }
+}
+
+function toggleAudioSettings() {
+    const audioPanel = document.getElementById('audio-settings-panel');
+    if (audioPanel) {
+        audioPanel.classList.toggle('open');
+    }
+}
+
+function closeAudioSettings() {
+    const audioPanel = document.getElementById('audio-settings-panel');
+    if (audioPanel) {
+        audioPanel.classList.remove('open');
+    }
+}
+
+function updateBackgroundVolume() {
+    const slider = document.getElementById('background-volume');
+    const valueDisplay = document.getElementById('background-volume-value');
+    
+    backgroundMusicVolume = slider.value / 100;
+    valueDisplay.textContent = slider.value + '%';
+    
+    if (backgroundMusic) {
+        backgroundMusic.volume = backgroundMusicVolume;
+    }
+    
+    // Update slider track color
+    updateSliderTrack(slider);
+}
+
+function updateCharacterVolume() {
+    const slider = document.getElementById('character-volume');
+    const valueDisplay = document.getElementById('character-volume-value');
+    
+    characterVoiceVolume = slider.value / 100;
+    valueDisplay.textContent = slider.value + '%';
+    
+    // Update slider track color
+    updateSliderTrack(slider);
+}
+
+function updateSliderTrack(slider) {
+    const percentage = (slider.value / slider.max) * 100;
+    slider.style.background = `linear-gradient(to right, #ffd700 0%, #ffd700 ${percentage}%, rgba(255,255,255,0.2) ${percentage}%, rgba(255,255,255,0.2) 100%)`;
+}
+
+function toggleBackgroundMusic() {
+    const toggleBtn = document.getElementById('toggle-background-music');
+    
+    if (!backgroundMusic) return;
+    
+    if (isMusicPlaying) {
+        backgroundMusic.pause();
+        isMusicPlaying = false;
+        toggleBtn.textContent = '▶️ Play';
+        toggleBtn.classList.remove('playing');
+        toggleBtn.classList.add('paused');
+        showNotification('Background music paused', 'info', 2000);
+    } else {
+        backgroundMusic.play().then(() => {
+            isMusicPlaying = true;
+            toggleBtn.textContent = '⏸️ Pause';
+            toggleBtn.classList.remove('paused');
+            toggleBtn.classList.add('playing');
+            showNotification('Background music resumed', 'success', 2000);
+        }).catch((error) => {
+            console.error('Error playing background music:', error);
+            showNotification('Unable to play music. Click anywhere first.', 'warning');
+        });
+    }
+}
+
+function updateMusicButton() {
+    const toggleBtn = document.getElementById('toggle-background-music');
+    if (toggleBtn) {
+        if (isMusicPlaying) {
+            toggleBtn.textContent = '⏸️ Pause';
+            toggleBtn.classList.remove('paused');
+            toggleBtn.classList.add('playing');
+        } else {
+            toggleBtn.textContent = '▶️ Play';
+            toggleBtn.classList.remove('playing');
+            toggleBtn.classList.add('paused');
+        }
+    }
+}
+
+function testCharacterVoice() {
+    const testBtn = document.getElementById('test-character-voice');
+    testBtn.disabled = true;
+    testBtn.textContent = '🔊 Testing...';
+    
+    // Create a test audio for demonstration
+    const testMessage = "How you doin'? This is a test of the character voice volume!";
+    
+    // Simulate character voice test (you can replace this with actual ElevenLabs call)
+    setTimeout(() => {
+        showNotification(`Character voice test at ${Math.round(characterVoiceVolume * 100)}% volume`, 'info', 3000);
+        testBtn.disabled = false;
+        testBtn.textContent = '🔊 Test';
+    }, 1000);
+}
 
 // Character selection
 document.querySelectorAll(".character-frame").forEach((frame) => {
@@ -516,6 +689,10 @@ function playAudio(base64Audio) {
 
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
+        
+        // Apply character voice volume setting
+        audio.volume = characterVoiceVolume;
+        
         audio.play();
 
         audio.onended = () => URL.revokeObjectURL(audioUrl);

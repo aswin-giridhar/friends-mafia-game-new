@@ -43,6 +43,7 @@
             <div class="game-controls-mini">
                 <button id="start-game-btn" class="mini-btn">🎮 Start Game</button>
                 <button id="toggle-chat-btn" class="mini-btn">💬 Chat</button>
+                <button id="audio-settings-btn" class="mini-btn">🔊 Audio</button>
                 <button id="end-game-btn" class="mini-btn" style="display:none;">🛑 End Game</button>
             </div>
         </div>
@@ -135,6 +136,38 @@
                 </div>
             </div>
         </div>
+
+        <!-- Audio Settings Panel -->
+        <div id="audio-settings-panel" class="audio-settings-panel">
+            <div class="audio-header">
+                <h3>🔊 Audio Settings</h3>
+                <button id="close-audio-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="audio-controls">
+                <div class="volume-control">
+                    <label for="background-volume">🎵 Background Music</label>
+                    <div class="volume-slider-container">
+                        <input type="range" id="background-volume" min="0" max="100" value="50" class="volume-slider">
+                        <span id="background-volume-value" class="volume-value">50%</span>
+                    </div>
+                    <button id="toggle-background-music" class="mini-btn">⏸️ Pause</button>
+                </div>
+                <div class="volume-control">
+                    <label for="character-volume">🗣️ Character Voices</label>
+                    <div class="volume-slider-container">
+                        <input type="range" id="character-volume" min="0" max="100" value="80" class="volume-slider">
+                        <span id="character-volume-value" class="volume-value">80%</span>
+                    </div>
+                    <button id="test-character-voice" class="mini-btn">🔊 Test</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Background Music Audio Element -->
+        <audio id="background-music" loop preload="auto">
+            <source src="/sounds/Friends.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
 
         <!-- In-Game Notification System -->
         <div id="notification-container" class="notification-container"></div>

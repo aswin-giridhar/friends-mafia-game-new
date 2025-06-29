@@ -110,7 +110,7 @@ class MCPManager {
         });
         
         // Generate contextual response
-        let response = this.selectContextualResponse(characterData, userInput, gameContext, conversation);
+        let response = this.selectContextualResponse(character, characterData, userInput, gameContext, conversation);
         
         // Add AI response to conversation history
         conversation.push({ 
@@ -140,7 +140,7 @@ class MCPManager {
         return response;
     }
 
-    selectContextualResponse(characterData, userInput, gameContext, conversation) {
+    selectContextualResponse(character, characterData, userInput, gameContext, conversation) {
         const { traits, catchphrases, mafiaRole } = characterData;
         const phase = gameContext.phase;
         const round = gameContext.round;
@@ -642,6 +642,50 @@ function endGame() {
     });
 }
 
+// Game restart function
+function resetGame() {
+    // Clear game state
+    gameState.phase = "lobby";
+    gameState.round = 0;
+    gameState.alivePlayers = [];
+    gameState.eliminatedPlayers = [];
+    gameState.votes.clear();
+    gameState.mafiaTarget = null;
+    gameState.doctorSave = null;
+    gameState.detectiveCheck = null;
+    gameState.nightActions.clear();
+    gameState.gameResults = {
+        winner: null,
+        reason: "",
+    };
+
+    // Clear timer
+    if (gameState.phaseTimer) {
+        clearInterval(gameState.phaseTimer);
+        gameState.phaseTimer = null;
+    }
+    gameState.timeRemaining = 0;
+
+    // Reset AI personas
+    gameState.aiPersonas.forEach(persona => {
+        persona.isAlive = true;
+        persona.role = "townsfolk";
+        persona.votes = 0;
+    });
+
+    // Reset players
+    gameState.players.forEach(player => {
+        player.isAlive = true;
+        player.role = "townsfolk";
+        player.votes = 0;
+    });
+
+    // Clear chat history
+    mcpManager.clearHistory();
+
+    console.log("Game reset successfully");
+}
+
 // Routes
 app.get("/", (req, res) => {
     res.render("index");
@@ -772,6 +816,23 @@ io.on("connection", (socket) => {
     socket.on('clear-chat-history', () => {
         mcpManager.clearHistory();
         io.emit('chat-history-update', []);
+    });
+
+    // Handle game restart
+    socket.on("restart-game", () => {
+        resetGame();
+        
+        // Notify all clients of game restart
+        io.emit("game-restarted", {
+            phase: gameState.phase,
+            round: gameState.round,
+            alivePlayers: gameState.alivePlayers.length,
+        });
+
+        // Clear chat history for all clients
+        io.emit('chat-history-update', []);
+        
+        console.log("Game restarted by player");
     });
 
     socket.on("disconnect", () => {

@@ -42,7 +42,23 @@
             </div>
             <div class="game-controls-mini">
                 <button id="start-game-btn" class="mini-btn">🎮 Start Game</button>
+                <button id="toggle-chat-btn" class="mini-btn">💬 Chat</button>
                 <button id="end-game-btn" class="mini-btn" style="display:none;">🛑 End Game</button>
+            </div>
+        </div>
+
+        <!-- Chat History Panel -->
+        <div id="chat-panel" class="chat-panel">
+            <div class="chat-header">
+                <h3>📜 Game Conversations</h3>
+                <button id="close-chat-btn" class="close-btn">&times;</button>
+            </div>
+            <div id="chat-history" class="chat-history">
+                <!-- Chat messages will be populated here -->
+            </div>
+            <div class="chat-controls">
+                <button id="clear-chat-btn" class="mini-btn">🗑️ Clear</button>
+                <button id="export-chat-btn" class="mini-btn">💾 Export</button>
             </div>
         </div>
 
@@ -101,7 +117,10 @@
             <div class="modal-content">
                 <h2 id="game-result-title">Game Over!</h2>
                 <div id="game-result-content"></div>
-                <button id="play-again-btn" class="action-btn">🔄 Play Again</button>
+                <div class="modal-buttons">
+                    <button id="restart-game-btn" class="action-btn">🔄 New Game</button>
+                    <button id="play-again-btn" class="action-btn">🏠 Main Menu</button>
+                </div>
             </div>
         </div>
     </div>
@@ -111,7 +130,7 @@
         window.playerData = {
             id: '<%= player.id %>',
             name: '<%= player.playerName %>',
-            isAlive: <%= player.isAlive %>
+            isAlive: <%= player.isAlive || true %>
         };
         window.gameState = {
             phase: '<%= gameState.phase %>',

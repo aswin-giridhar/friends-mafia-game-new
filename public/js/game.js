@@ -6,6 +6,8 @@ let isRecording = false;
 let recognition = null;
 let currentGamePhase = "lobby";
 let playerVoted = false;
+let chatHistory = [];
+let isChatOpen = false;
 
 // Initialize speech recognition
 if ("webkitSpeechRecognition" in window) {
@@ -42,6 +44,25 @@ const aliveCount = document.getElementById("alive-count");
 // Initialize game
 document.addEventListener("DOMContentLoaded", () => {
     updateUIForPhase(window.gameState.phase);
+    
+    // Chat panel controls
+    const toggleChatBtn = document.getElementById('toggle-chat-btn');
+    const closeChatBtn = document.getElementById('close-chat-btn');
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+    const exportChatBtn = document.getElementById('export-chat-btn');
+
+    if (toggleChatBtn) {
+        toggleChatBtn.addEventListener('click', toggleChat);
+    }
+    if (closeChatBtn) {
+        closeChatBtn.addEventListener('click', closeChat);
+    }
+    if (clearChatBtn) {
+        clearChatBtn.addEventListener('click', clearChat);
+    }
+    if (exportChatBtn) {
+        exportChatBtn.addEventListener('click', exportChat);
+    }
 });
 
 // Character selection
@@ -443,7 +464,15 @@ function showGameResults(data) {
 
 // Play again functionality
 document.getElementById("play-again-btn").addEventListener("click", () => {
-    location.reload();
+    location.href = "/";
+});
+
+// Restart game functionality
+document.getElementById("restart-game-btn").addEventListener("click", () => {
+    const confirmation = confirm("Start a new game with re-randomized roles?");
+    if (confirmation) {
+        socket.emit("restart-game");
+    }
 });
 
 // Visual effects
@@ -485,6 +514,164 @@ function playAudio(base64Audio) {
     } catch (error) {
         console.error("Error playing audio:", error);
     }
+}
+
+// Chat functions
+function toggleChat() {
+    const chatPanel = document.getElementById('chat-panel');
+    if (chatPanel) {
+        chatPanel.classList.toggle('open');
+        isChatOpen = !isChatOpen;
+    }
+}
+
+function closeChat() {
+    const chatPanel = document.getElementById('chat-panel');
+    if (chatPanel) {
+        chatPanel.classList.remove('open');
+        isChatOpen = false;
+    }
+}
+
+function clearChat() {
+    const confirmation = confirm('Clear all chat history?');
+    if (confirmation) {
+        chatHistory = [];
+        updateChatDisplay();
+        socket.emit('clear-chat-history');
+    }
+}
+
+function exportChat() {
+    const chatText = chatHistory.map(msg => 
+        `[${msg.timestamp}] ${msg.character}: ${msg.message}`
+    ).join('\n');
+    
+    const blob = new Blob([chatText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mafia-game-chat-${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function addChatMessage(character, message, type = 'ai') {
+    const timestamp = new Date().toLocaleTimeString();
+    const chatMessage = {
+        character,
+        message,
+        timestamp,
+        type
+    };
+    
+    chatHistory.push(chatMessage);
+    updateChatDisplay();
+    
+    // Auto-scroll to bottom
+    const chatHistoryDiv = document.getElementById('chat-history');
+    if (chatHistoryDiv) {
+        chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+    }
+}
+
+function updateChatDisplay() {
+    const chatHistoryDiv = document.getElementById('chat-history');
+    if (!chatHistoryDiv) return;
+    
+    chatHistoryDiv.innerHTML = chatHistory.map(msg => `
+        <div class="chat-message ${msg.type}">
+            <div class="message-sender">${msg.character}</div>
+            <div class="message-bubble">${msg.message}</div>
+            <div class="message-time">${msg.timestamp}</div>
+        </div>
+    `).join('');
+}
+
+// Enhanced character speaking handler with chat integration
+socket.on('character-speaking', (data) => {
+    const { character, dialogue } = data;
+    
+    // Add to chat history
+    addChatMessage(character, dialogue, 'ai');
+    
+    highlightSpeaker(character);
+    updateDialogue(`${character}: ${dialogue}`);
+    
+    if (data.audio) {
+        playAudio(data.audio);
+    }
+});
+
+// Add socket handler for chat history updates
+socket.on('chat-history-update', (history) => {
+    chatHistory = history;
+    updateChatDisplay();
+});
+
+// Handle game restart
+socket.on("game-restarted", (data) => {
+    // Hide game results modal
+    const modal = document.getElementById("game-results-modal");
+    modal.style.display = "none";
+    
+    // Reset UI to lobby state
+    updateUIForPhase(data.phase);
+    currentRound.textContent = data.round;
+    aliveCount.textContent = data.alivePlayers;
+    
+    // Clear all character eliminations
+    document.querySelectorAll(".character-frame").forEach((frame) => {
+        frame.classList.remove("eliminated", "selected");
+        const overlay = frame.querySelector(".elimination-overlay");
+        if (overlay) {
+            overlay.style.display = "none";
+        }
+        const statusIndicator = frame.querySelector(".status-indicator");
+        if (statusIndicator) {
+            statusIndicator.classList.remove("dead");
+            statusIndicator.classList.add("alive");
+        }
+        const voteCount = frame.querySelector(".vote-count");
+        if (voteCount) {
+            voteCount.textContent = "0 votes";
+        }
+    });
+    
+    // Reset game state
+    selectedCharacter = null;
+    selectedNameSpan.textContent = "None";
+    playerVoted = false;
+    
+    // Show start game button
+    startGameBtn.style.display = "inline-block";
+    
+    // Clear dialogue
+    updateDialogue("Game restarted! Roles have been re-randomized. Click 'Start Game' to begin a new round.");
+    
+    // Clear chat history display
+    chatHistory = [];
+    updateChatDisplay();
+    
+    // Update button states
+    updateButtonStates();
+});
+
+// Enhanced voice input handler with chat integration
+function handleVoiceInput(transcript) {
+    if (!selectedCharacter) return;
+
+    // Add to chat history
+    addChatMessage(window.playerData.name, transcript, 'player');
+    
+    updateDialogue(`You said: "${transcript}"`);
+    actionStatus.textContent = `Speaking to ${selectedCharacter}...`;
+
+    socket.emit("voice-input", {
+        transcript: transcript,
+        targetCharacter: selectedCharacter,
+        playerName: window.playerData.name
+    });
 }
 
 // Initialize button states

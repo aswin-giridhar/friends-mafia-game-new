@@ -115,6 +115,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (exportVotingHistoryBtn) {
         exportVotingHistoryBtn.addEventListener('click', exportVotingHistory);
     }
+
+    // Skip round controls
+    const skipRoundBtn = document.getElementById('skip-round-btn');
+    if (skipRoundBtn) {
+        skipRoundBtn.addEventListener('click', skipCurrentRound);
+    }
 });
 
 // Audio system functions
@@ -707,6 +713,9 @@ socket.on("phase-change", (data) => {
     currentRound.textContent = data.round;
     phaseTimer.textContent = formatTime(data.timeRemaining);
 
+    // Update button visibility
+    updateGameControlButtons();
+
     // Handle phase-specific UI changes
     if (data.phase === "night") {
         clearSelection();
@@ -1186,6 +1195,11 @@ function showPrivateInformation(role, info) {
     });
 }
 
+socket.on("phase-skipped", (data) => {
+    showNotification(`${data.skippedBy} skipped the ${data.phase} phase`, "info", 3000);
+    updateDialogue(`${data.skippedBy} skipped the ${data.phase} phase. Moving to next phase...`);
+});
+
 socket.on("game-restarted", (data) => {
     // Hide game results modal
     const modal = document.getElementById("game-results-modal");
@@ -1238,6 +1252,7 @@ socket.on("game-restarted", (data) => {
     
     // Update button states
     updateButtonStates();
+    updateGameControlButtons();
 });
 
 // Enhanced voice input handler with chat integration
@@ -1512,5 +1527,50 @@ socket.on('voting-history-update', (serverVotingHistory) => {
     displayVotingHistory(serverVotingHistory);
 });
 
+// Skip round function
+function skipCurrentRound() {
+    if (currentGamePhase === "lobby" || currentGamePhase === "gameOver") {
+        showNotification("Cannot skip round in current phase!", "warning");
+        return;
+    }
+    
+    showConfirmation(
+        "Skip Current Round",
+        `Are you sure you want to skip the current ${currentGamePhase} phase? This will immediately advance to the next phase.`,
+        () => {
+            socket.emit('skip-round', {
+                playerId: window.playerData.id,
+                currentPhase: currentGamePhase
+            });
+            showNotification(`Skipping ${currentGamePhase} phase...`, "info");
+        }
+    );
+}
+
+// Update button visibility based on game state
+function updateGameControlButtons() {
+    const startGameBtn = document.getElementById('start-game-btn');
+    const skipRoundBtn = document.getElementById('skip-round-btn');
+    const endGameBtn = document.getElementById('end-game-btn');
+    
+    if (startGameBtn && skipRoundBtn && endGameBtn) {
+        if (currentGamePhase === "lobby") {
+            startGameBtn.style.display = "inline-block";
+            skipRoundBtn.style.display = "none";
+            endGameBtn.style.display = "none";
+        } else if (currentGamePhase === "gameOver") {
+            startGameBtn.style.display = "none";
+            skipRoundBtn.style.display = "none";
+            endGameBtn.style.display = "none";
+        } else {
+            // During active game phases
+            startGameBtn.style.display = "none";
+            skipRoundBtn.style.display = "inline-block";
+            endGameBtn.style.display = "inline-block";
+        }
+    }
+}
+
 // Initialize button states
 updateButtonStates();
+updateGameControlButtons();

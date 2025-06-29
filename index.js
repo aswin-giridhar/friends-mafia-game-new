@@ -1321,6 +1321,48 @@ io.on("connection", (socket) => {
         socket.emit("voting-history-update", gameState.votingHistory);
     });
 
+    // Handle skip round
+    socket.on("skip-round", (data) => {
+        if (gameState.phase === "lobby" || gameState.phase === "gameOver") {
+            socket.emit("error", "Cannot skip round in current phase!");
+            return;
+        }
+
+        const player = gameState.players.get(data.playerId);
+        if (!player) {
+            socket.emit("error", "Player not found!");
+            return;
+        }
+
+        console.log(`Player ${player.playerName} requested to skip ${data.currentPhase} phase`);
+
+        // Clear current timer
+        if (gameState.phaseTimer) {
+            clearInterval(gameState.phaseTimer);
+            gameState.phaseTimer = null;
+        }
+
+        // Set time remaining to 1 to trigger phase end
+        gameState.timeRemaining = 1;
+
+        // Notify all clients
+        io.emit("timer-update", {
+            phase: gameState.phase,
+            timeRemaining: gameState.timeRemaining,
+        });
+
+        // Trigger phase end after a brief delay
+        setTimeout(() => {
+            handlePhaseEnd();
+        }, 1000);
+
+        // Notify all clients about the skip
+        io.emit("phase-skipped", {
+            skippedBy: player.playerName,
+            phase: data.currentPhase
+        });
+    });
+
     // Handle game restart
     socket.on("restart-game", () => {
         resetGame();

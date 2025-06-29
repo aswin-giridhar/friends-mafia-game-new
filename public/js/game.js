@@ -488,7 +488,53 @@ socket.on("game-state-update", (data) => {
     if (data.timeRemaining) {
         phaseTimer.textContent = formatTime(data.timeRemaining);
     }
+    
+    // Update player role if provided
+    if (data.playerRole) {
+        updatePlayerRole(data.playerRole);
+    }
 });
+// Socket event handlers
+socket.on("game-state-update", (data) => {
+    updateUIForPhase(data.phase);
+    currentRound.textContent = data.round;
+    aliveCount.textContent = data.alivePlayers.length;
+
+    if (data.timeRemaining) {
+        phaseTimer.textContent = formatTime(data.timeRemaining);
+    }
+    
+    // Update player role if provided
+    if (data.playerRole) {
+        updatePlayerRole(data.playerRole);
+    }
+});
+
+// Function to update player role display
+function updatePlayerRole(role) {
+    const playerRoleElement = document.getElementById('player-role');
+    if (playerRoleElement) {
+        playerRoleElement.textContent = role;
+        playerRoleElement.className = `player-role ${role}`;
+        
+        // Update window.playerData for reference
+        if (window.playerData) {
+            window.playerData.role = role;
+        }
+        
+        // Show role-specific notification
+        const roleDescriptions = {
+            'mafia': 'You are MAFIA! Work with your partner to eliminate townspeople.',
+            'detective': 'You are the DETECTIVE! Investigate players each night to find the mafia.',
+            'doctor': 'You are the DOCTOR! Protect players from mafia attacks each night.',
+            'townsfolk': 'You are a TOWNSPERSON! Find and eliminate the mafia through discussion and voting.'
+        };
+        
+        if (roleDescriptions[role]) {
+            showNotification(roleDescriptions[role], 'info', 8000);
+        }
+    }
+}
 
 socket.on("phase-change", (data) => {
     updateUIForPhase(data.phase);
@@ -813,6 +859,19 @@ socket.on('chat-history-update', (history) => {
 });
 
 // Handle game restart
+socket.on("role-assigned", (data) => {
+    updatePlayerRole(data.role);
+    
+    // Store mafia partners if player is mafia
+    if (data.role === "mafia" && data.mafiaPartners) {
+        window.playerData.mafiaPartners = data.mafiaPartners;
+        const partnerNames = data.mafiaPartners.filter(name => name !== window.playerData.name);
+        if (partnerNames.length > 0) {
+            showNotification(`Your mafia partner is: ${partnerNames.join(", ")}`, 'info', 10000);
+        }
+    }
+});
+
 socket.on("game-restarted", (data) => {
     // Hide game results modal
     const modal = document.getElementById("game-results-modal");
@@ -822,6 +881,13 @@ socket.on("game-restarted", (data) => {
     updateUIForPhase(data.phase);
     currentRound.textContent = data.round;
     aliveCount.textContent = data.alivePlayers;
+    
+    // Reset player role display
+    const playerRoleElement = document.getElementById('player-role');
+    if (playerRoleElement) {
+        playerRoleElement.textContent = "Unknown";
+        playerRoleElement.className = "player-role";
+    }
     
     // Clear all character eliminations
     document.querySelectorAll(".character-frame").forEach((frame) => {

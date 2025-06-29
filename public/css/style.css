@@ -151,23 +151,75 @@ body {
 }
 
 .player-info {
-  display: flex;
-  align-items: center;
-  gap: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 .player-avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: 2px solid #ffd700;
-  object-fit: cover;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid #ffd700;
+    object-fit: cover;
+}
+
+.player-details {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
 .player-name {
-  color: #f4e4bc;
-  font-size: 1.2rem;
-  font-weight: bold;
+    color: #f4e4bc;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.player-role-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.player-role-label {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.player-role {
+    color: #ffd700;
+    font-size: 0.9rem;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(255, 215, 0, 0.2);
+    border: 1px solid #ffd700;
+    text-transform: uppercase;
+}
+
+.player-role.mafia {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.2);
+    border-color: #ff6b6b;
+}
+
+.player-role.detective {
+    color: #4ecdc4;
+    background: rgba(78, 205, 196, 0.2);
+    border-color: #4ecdc4;
+}
+
+.player-role.doctor {
+    color: #4caf50;
+    background: rgba(76, 175, 80, 0.2);
+    border-color: #4caf50;
+}
+
+.player-role.townsfolk {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.2);
+    border-color: #ffd700;
 }
 
 .portrait-gallery {

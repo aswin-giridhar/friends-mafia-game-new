@@ -323,38 +323,57 @@ const mcpManager = new MCPManager();
 
 // Game Logic Functions
 function initializeGame() {
-    // Assign roles to AI personas randomly
-    const roles = [
+    // Define all 7 roles for the game (1 human + 6 AI)
+    const allRoles = [
         "mafia",
-        "mafia",
+        "mafia", 
         "doctor",
         "detective",
         "townsfolk",
         "townsfolk",
+        "townsfolk"
     ];
-    const shuffledRoles = roles.sort(() => Math.random() - 0.5);
-
-    gameState.aiPersonas.forEach((persona, index) => {
-        persona.role = shuffledRoles[index] || "townsfolk";
-        persona.isAlive = true;
-        persona.votes = 0;
-    });
-
-    // Add human player as townsfolk
+    
+    // Shuffle roles randomly
+    const shuffledRoles = allRoles.sort(() => Math.random() - 0.5);
+    
+    // Assign first role to human player
     gameState.players.forEach((player) => {
-        player.role = "townsfolk";
+        player.role = shuffledRoles[0];
         player.isAlive = true;
         player.votes = 0;
+    });
+    
+    // Assign remaining roles to AI personas
+    gameState.aiPersonas.forEach((persona, index) => {
+        persona.role = shuffledRoles[index + 1];
+        persona.isAlive = true;
+        persona.votes = 0;
     });
 
     updateAlivePlayers();
     gameState.phase = "night";
     gameState.round = 1;
 
-    console.log(
-        "Game initialized with roles:",
-        gameState.aiPersonas.map((p) => `${p.name}: ${p.role}`),
-    );
+    // Log role assignments for debugging
+    console.log("Game initialized with roles:");
+    gameState.players.forEach(player => {
+        console.log(`${player.playerName} (Human): ${player.role}`);
+    });
+    gameState.aiPersonas.forEach(persona => {
+        console.log(`${persona.name} (AI): ${persona.role}`);
+    });
+    
+    // Find mafia partners for coordination
+    const mafiaMembers = [
+        ...Array.from(gameState.players.values()).filter(p => p.role === "mafia"),
+        ...gameState.aiPersonas.filter(p => p.role === "mafia")
+    ];
+    
+    if (mafiaMembers.length === 2) {
+        gameState.mafiaPartners = mafiaMembers;
+        console.log("Mafia partners:", mafiaMembers.map(m => m.name || m.playerName));
+    }
 }
 
 function updateAlivePlayers() {
@@ -758,6 +777,29 @@ io.on("connection", (socket) => {
     socket.on("start-game", () => {
         if (gameState.phase === "lobby" && gameState.players.size >= 1) {
             initializeGame();
+            
+            // Send role information to the player
+            const player = Array.from(gameState.players.values())[0];
+            socket.emit("role-assigned", {
+                role: player.role,
+                mafiaPartners: gameState.mafiaPartners ? gameState.mafiaPartners.map(m => m.name || m.playerName) : []
+            });
+            
+            startPhase("night", GAME_CONFIG.nightPhaseDuration);
+        }
+    });
+    // Start game when enough players join
+    socket.on("start-game", () => {
+        if (gameState.phase === "lobby" && gameState.players.size >= 1) {
+            initializeGame();
+            
+            // Send role information to the player
+            const player = Array.from(gameState.players.values())[0];
+            socket.emit("role-assigned", {
+                role: player.role,
+                mafiaPartners: gameState.mafiaPartners ? gameState.mafiaPartners.map(m => m.name || m.playerName) : []
+            });
+            
             startPhase("night", GAME_CONFIG.nightPhaseDuration);
         }
     });

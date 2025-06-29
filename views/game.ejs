@@ -27,8 +27,14 @@
             </div>
             <div class="player-info">
                 <img src="/images/players/<%= player.photo %>" alt="<%= player.playerName %>" class="player-avatar">
-                <span class="player-name">Welcome, <%= player.playerName %>!</span>
-                <span class="player-status" id="player-status">Alive</span>
+                <div class="player-details">
+                    <span class="player-name">Welcome, <%= player.playerName %>!</span>
+                    <div class="player-role-container">
+                        <span class="player-role-label">Your Role:</span>
+                        <span class="player-role" id="player-role">Unknown</span>
+                    </div>
+                    <span class="player-status" id="player-status">Alive</span>
+                </div>
             </div>
         </header>
 

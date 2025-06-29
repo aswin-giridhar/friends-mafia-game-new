@@ -229,61 +229,65 @@ function handleVoiceInput(transcript) {
 // Voting functionality
 voteButton.addEventListener("click", () => {
     if (!selectedCharacter) {
-        updateDialogue("Please select a character to vote for!");
+        showNotification("Please select a character to vote for!", "warning");
         return;
     }
 
     if (currentGamePhase !== "voting") {
-        updateDialogue("Voting is only allowed during voting phase!");
+        showNotification("Voting is only allowed during voting phase!", "error");
         return;
     }
 
-    const confirmation = confirm(
+    showConfirmation(
+        "Confirm Vote",
         `Are you sure you want to vote to eliminate ${selectedCharacter}?`,
+        () => {
+            socket.emit("vote", {
+                playerId: window.playerData.id,
+                targetCharacter: selectedCharacter,
+            });
+
+            playerVoted = true;
+            voteButton.disabled = true;
+            voteButton.textContent = "✅ Voted";
+            voteButton.classList.remove("phase-active");
+
+            updateDialogue(`You voted to eliminate ${selectedCharacter}!`);
+            actionStatus.textContent = "Vote cast! Waiting for results...";
+            showNotification(`Vote cast for ${selectedCharacter}!`, "success");
+        }
     );
-    if (confirmation) {
-        socket.emit("vote", {
-            playerId: window.playerData.id,
-            targetCharacter: selectedCharacter,
-        });
-
-        playerVoted = true;
-        voteButton.disabled = true;
-        voteButton.textContent = "✅ Voted";
-        voteButton.classList.remove("phase-active");
-
-        updateDialogue(`You voted to eliminate ${selectedCharacter}!`);
-        actionStatus.textContent = "Vote cast! Waiting for results...";
-    }
 });
 
 // Accusation functionality (available during discussion)
 accuseButton.addEventListener("click", () => {
     if (!selectedCharacter) {
-        updateDialogue("Please select a character to accuse!");
+        showNotification("Please select a character to accuse!", "warning");
         return;
     }
 
     if (currentGamePhase !== "discussion") {
-        updateDialogue("Accusations are only allowed during discussion phase!");
+        showNotification("Accusations are only allowed during discussion phase!", "error");
         return;
     }
 
-    const confirmation = confirm(
+    showConfirmation(
+        "Public Accusation",
         `Are you sure you want to publicly accuse ${selectedCharacter} of being mafia?`,
+        () => {
+            const message = `I accuse ${selectedCharacter} of being mafia!`;
+
+            socket.emit("voice-input", {
+                transcript: message,
+                targetCharacter: selectedCharacter,
+                playerName: window.playerData.name
+            });
+
+            updateDialogue(`You publicly accused ${selectedCharacter}!`);
+            actionStatus.textContent = `Accused ${selectedCharacter} of being mafia!`;
+            showNotification(`Publicly accused ${selectedCharacter} of being mafia!`, "warning");
+        }
     );
-    if (confirmation) {
-        const message = `I accuse ${selectedCharacter} of being mafia!`;
-
-        socket.emit("voice-input", {
-            transcript: message,
-            targetCharacter: selectedCharacter,
-            playerName: window.playerData.name
-        });
-
-        updateDialogue(`You publicly accused ${selectedCharacter}!`);
-        actionStatus.textContent = `Accused ${selectedCharacter} of being mafia!`;
-    }
 });
 
 // Socket event handlers
@@ -469,10 +473,14 @@ document.getElementById("play-again-btn").addEventListener("click", () => {
 
 // Restart game functionality
 document.getElementById("restart-game-btn").addEventListener("click", () => {
-    const confirmation = confirm("Start a new game with re-randomized roles?");
-    if (confirmation) {
-        socket.emit("restart-game");
-    }
+    showConfirmation(
+        "Restart Game",
+        "Start a new game with re-randomized roles? All current progress will be lost.",
+        () => {
+            socket.emit("restart-game");
+            showNotification("Starting new game with re-randomized roles...", "info");
+        }
+    );
 });
 
 // Visual effects
@@ -534,12 +542,16 @@ function closeChat() {
 }
 
 function clearChat() {
-    const confirmation = confirm('Clear all chat history?');
-    if (confirmation) {
-        chatHistory = [];
-        updateChatDisplay();
-        socket.emit('clear-chat-history');
-    }
+    showConfirmation(
+        "Clear Chat History",
+        "Are you sure you want to clear all chat history? This action cannot be undone.",
+        () => {
+            chatHistory = [];
+            updateChatDisplay();
+            socket.emit('clear-chat-history');
+            showNotification("Chat history cleared!", "success");
+        }
+    );
 }
 
 function exportChat() {
@@ -672,6 +684,86 @@ function handleVoiceInput(transcript) {
         targetCharacter: selectedCharacter,
         playerName: window.playerData.name
     });
+}
+
+// Custom notification and confirmation system
+let currentConfirmCallback = null;
+
+function showNotification(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('notification-container');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+    
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${icons[type] || icons.info}</span>
+            <span class="notification-text">${message}</span>
+        </div>
+        <button class="notification-close">&times;</button>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Close button functionality
+    const closeBtn = notification.querySelector('.notification-close');
+    closeBtn.addEventListener('click', () => {
+        removeNotification(notification);
+    });
+    
+    // Auto-remove after duration
+    if (duration > 0) {
+        setTimeout(() => {
+            removeNotification(notification);
+        }, duration);
+    }
+    
+    return notification;
+}
+
+function removeNotification(notification) {
+    notification.classList.add('removing');
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 300);
+}
+
+function showConfirmation(title, message, onConfirm, onCancel = null) {
+    const modal = document.getElementById('confirmation-modal');
+    const titleElement = document.getElementById('confirmation-title');
+    const messageElement = document.getElementById('confirmation-message');
+    const yesBtn = document.getElementById('confirm-yes-btn');
+    const noBtn = document.getElementById('confirm-no-btn');
+    
+    titleElement.textContent = title;
+    messageElement.textContent = message;
+    
+    // Remove existing event listeners
+    const newYesBtn = yesBtn.cloneNode(true);
+    const newNoBtn = noBtn.cloneNode(true);
+    yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
+    noBtn.parentNode.replaceChild(newNoBtn, noBtn);
+    
+    // Add new event listeners
+    newYesBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+        if (onConfirm) onConfirm();
+    });
+    
+    newNoBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+        if (onCancel) onCancel();
+    });
+    
+    modal.style.display = 'flex';
 }
 
 // Initialize button states

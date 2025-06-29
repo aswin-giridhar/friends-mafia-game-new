@@ -321,35 +321,53 @@ class MCPManager {
 
 const mcpManager = new MCPManager();
 
-// Enhanced AI Strategy Functions
+// Enhanced AI Strategy Functions with Role-Based Intelligence
 function selectStrategicMafiaTarget(aliveTargets, aliveMafia) {
-    // Priority system for mafia target selection
+    // Priority system for mafia target selection with advanced strategy
     const targetPriorities = [];
+    const gameRound = gameState.round;
+    const totalPlayers = gameState.alivePlayers.length;
     
     aliveTargets.forEach(target => {
         let priority = 0;
         let reasoning = "";
         
-        // High priority: Detective (threat to mafia)
+        // Role-based priority system
         if (target.role === "detective") {
-            priority += 100;
-            reasoning = "Detective - high threat";
+            // Detective is highest priority, especially early game
+            priority += 120 + (gameRound <= 2 ? 30 : 0);
+            reasoning = "Detective - critical threat to mafia";
         }
-        
-        // Medium-high priority: Doctor (can save targets)
         else if (target.role === "doctor") {
-            priority += 80;
-            reasoning = "Doctor - can protect targets";
+            // Doctor priority increases as game progresses
+            priority += 90 + (gameRound >= 3 ? 20 : 0);
+            reasoning = "Doctor - can protect key targets";
         }
-        
-        // Medium priority: Active townspeople
         else if (target.role === "townsfolk") {
-            priority += 50;
-            reasoning = "Townsperson - standard target";
+            // Townspeople priority based on game state
+            priority += 60;
+            reasoning = "Townsperson - standard elimination target";
         }
         
-        // Add randomness to avoid predictable patterns
-        priority += Math.random() * 20;
+        // Strategic considerations
+        
+        // If close to winning (mafia >= innocents), target anyone
+        const aliveMafiaCount = gameState.alivePlayers.filter(p => p.role === "mafia").length;
+        const aliveInnocentCount = gameState.alivePlayers.filter(p => p.role !== "mafia").length;
+        
+        if (aliveMafiaCount >= aliveInnocentCount - 1) {
+            priority += 50;
+            reasoning += " + close to victory";
+        }
+        
+        // Avoid targeting if only 3 players left (might expose mafia)
+        if (totalPlayers <= 3 && target.role === "townsfolk") {
+            priority -= 30;
+            reasoning += " - endgame caution";
+        }
+        
+        // Add strategic randomness (less predictable)
+        priority += (Math.random() - 0.5) * 25;
         
         targetPriorities.push({
             target: target,
@@ -362,13 +380,120 @@ function selectStrategicMafiaTarget(aliveTargets, aliveMafia) {
     targetPriorities.sort((a, b) => b.priority - a.priority);
     
     // Log AI decision making for debugging
-    console.log("AI Mafia target selection:");
+    console.log(`AI Mafia target selection (Round ${gameRound}):`);
     targetPriorities.forEach((item, index) => {
         console.log(`${index + 1}. ${item.target.name || item.target.playerName} - Priority: ${item.priority.toFixed(1)} (${item.reasoning})`);
     });
     
     // Return highest priority target
     return targetPriorities[0].target;
+}
+
+function selectStrategicDoctorTarget(aliveTargets, gameRound) {
+    // Doctor AI strategy for protection
+    const protectionPriorities = [];
+    
+    aliveTargets.forEach(target => {
+        let priority = 0;
+        let reasoning = "";
+        
+        // Role-based protection priority
+        if (target.role === "detective") {
+            priority += 100;
+            reasoning = "Detective - protect key investigator";
+        }
+        else if (target.role === "doctor") {
+            // Self-protection in dangerous situations
+            priority += 70 + (gameRound >= 3 ? 20 : 0);
+            reasoning = "Doctor - self-preservation";
+        }
+        else if (target.role === "townsfolk") {
+            priority += 40;
+            reasoning = "Townsperson - protect innocent";
+        }
+        
+        // Strategic considerations
+        if (gameRound === 1) {
+            // First round: protect detective or self
+            if (target.role === "detective") priority += 30;
+            if (target.role === "doctor") priority += 20;
+            reasoning += " + first round priority";
+        }
+        
+        // Late game: focus on self-preservation
+        if (gameRound >= 4 && target.role === "doctor") {
+            priority += 40;
+            reasoning += " + late game survival";
+        }
+        
+        // Add some randomness
+        priority += Math.random() * 15;
+        
+        protectionPriorities.push({
+            target: target,
+            priority: priority,
+            reasoning: reasoning
+        });
+    });
+    
+    protectionPriorities.sort((a, b) => b.priority - a.priority);
+    
+    console.log(`AI Doctor protection selection (Round ${gameRound}):`);
+    protectionPriorities.forEach((item, index) => {
+        console.log(`${index + 1}. ${item.target.name || item.target.playerName} - Priority: ${item.priority.toFixed(1)} (${item.reasoning})`);
+    });
+    
+    return protectionPriorities[0].target;
+}
+
+function selectStrategicDetectiveTarget(aliveTargets, gameRound) {
+    // Detective AI strategy for investigation
+    const investigationPriorities = [];
+    
+    aliveTargets.forEach(target => {
+        let priority = 0;
+        let reasoning = "";
+        
+        // Never investigate known roles (in a real game, detective wouldn't know)
+        // But for AI strategy, focus on suspicious behavior patterns
+        
+        // Base investigation priority
+        priority += 50;
+        reasoning = "Standard investigation target";
+        
+        // Strategic considerations
+        if (gameRound === 1) {
+            // First round: investigate randomly but strategically
+            priority += Math.random() * 30;
+            reasoning += " + first round exploration";
+        } else {
+            // Later rounds: focus on surviving players who might be mafia
+            priority += Math.random() * 40;
+            reasoning += " + behavioral analysis";
+        }
+        
+        // Prioritize investigating players who are still alive and active
+        if (target.role === "mafia") {
+            // In reality, detective wouldn't know this, but for AI strategy
+            priority += 80;
+            reasoning = "High suspicion target";
+        }
+        
+        investigationPriorities.push({
+            target: target,
+            priority: priority,
+            reasoning: reasoning
+        });
+    });
+    
+    investigationPriorities.sort((a, b) => b.priority - a.priority);
+    
+    console.log(`AI Detective investigation selection (Round ${gameRound}):`);
+    investigationPriorities.forEach((item, index) => {
+        console.log(`${index + 1}. ${item.target.name || item.target.playerName} - Priority: ${item.priority.toFixed(1)} (${item.reasoning})`);
+    });
+    
+    return investigationPriorities[0].target;
 }
 
 function enhanceAIVotingBehavior() {
@@ -602,11 +727,16 @@ function processNightActions() {
             successful: mafiaTarget && (mafiaTarget.name || mafiaTarget.playerName) === playerDoctorAction.target
         });
     } else {
-        // AI doctor chooses protection
+        // AI doctor chooses protection with strategic intelligence
         const aliveDoctor = gameState.aiPersonas.find(p => p.isAlive && p.role === "doctor");
         if (aliveDoctor) {
-            doctorSave = gameState.alivePlayers[Math.floor(Math.random() * gameState.alivePlayers.length)];
-            narrative += `💊 The doctor protected someone...\n`;
+            // Use strategic doctor AI
+            const protectionTargets = gameState.alivePlayers.filter(p => p !== aliveDoctor);
+            if (protectionTargets.length > 0) {
+                doctorSave = selectStrategicDoctorTarget(protectionTargets, gameState.round);
+                narrative += `💊 The doctor protected someone...\n`;
+                console.log(`AI Doctor ${aliveDoctor.name} strategically protected ${doctorSave.name || doctorSave.playerName}`);
+            }
         }
     }
     gameState.doctorSave = doctorSave;
@@ -632,11 +762,16 @@ function processNightActions() {
                 `Investigation failed - target not found`
         });
     } else {
-        // AI detective investigates
+        // AI detective investigates with strategic intelligence
         const aliveDetective = gameState.aiPersonas.find(p => p.isAlive && p.role === "detective");
         if (aliveDetective) {
-            detectiveCheck = gameState.alivePlayers[Math.floor(Math.random() * gameState.alivePlayers.length)];
-            narrative += `🔍 The detective investigated someone...\n`;
+            // Use strategic detective AI
+            const investigationTargets = gameState.alivePlayers.filter(p => p !== aliveDetective);
+            if (investigationTargets.length > 0) {
+                detectiveCheck = selectStrategicDetectiveTarget(investigationTargets, gameState.round);
+                narrative += `🔍 The detective investigated someone...\n`;
+                console.log(`AI Detective ${aliveDetective.name} strategically investigated ${detectiveCheck.name || detectiveCheck.playerName}`);
+            }
         }
     }
     gameState.detectiveCheck = detectiveCheck;

@@ -839,20 +839,106 @@ function endGame() {
         clearInterval(gameState.phaseTimer);
     }
 
-    io.emit("game-over", {
-        results: gameState.gameResults,
-        finalStats: {
-            rounds: gameState.round,
-            survivors: gameState.alivePlayers.map((p) => ({
-                name: p.name || p.playerName,
-                role: p.role,
-            })),
-            eliminated: gameState.eliminatedPlayers.map((p) => ({
-                name: p.name || p.playerName,
-                role: p.role,
-            })),
-        },
+    // Send role-specific game results to each player
+    gameState.players.forEach((player, playerId) => {
+        const roleSpecificResults = generateRoleSpecificResults(player, gameState.gameResults);
+        
+        io.to(playerId).emit("game-over", {
+            results: roleSpecificResults,
+            playerRole: player.role,
+            playerSurvived: player.isAlive,
+            finalStats: {
+                rounds: gameState.round,
+                survivors: gameState.alivePlayers.map((p) => ({
+                    name: p.name || p.playerName,
+                    role: p.role,
+                })),
+                eliminated: gameState.eliminatedPlayers.map((p) => ({
+                    name: p.name || p.playerName,
+                    role: p.role,
+                })),
+            },
+        });
     });
+
+    // Send generic results to any spectators or for logging
+    console.log("Game ended:", gameState.gameResults);
+}
+
+function generateRoleSpecificResults(player, gameResults) {
+    const playerWon = checkPlayerVictory(player, gameResults);
+    
+    const roleSpecificResults = {
+        winner: gameResults.winner,
+        reason: gameResults.reason,
+        playerOutcome: playerWon ? "victory" : "defeat",
+        playerRole: player.role,
+        playerSurvived: player.isAlive
+    };
+
+    // Generate role-specific messages
+    if (player.role === "mafia") {
+        if (gameResults.winner === "mafia") {
+            roleSpecificResults.title = "🔴 MAFIA VICTORY!";
+            roleSpecificResults.personalMessage = player.isAlive ? 
+                "Congratulations! You and your partner successfully took control of the town!" :
+                "Victory! Even though you were eliminated, your mafia partner completed the mission!";
+            roleSpecificResults.roleMessage = "The mafia has won by either eliminating enough innocents or surviving to the end.";
+        } else {
+            roleSpecificResults.title = "🔴 MAFIA DEFEATED";
+            roleSpecificResults.personalMessage = "Defeat! The townspeople discovered your identity and eliminated the mafia.";
+            roleSpecificResults.roleMessage = "The innocent townspeople successfully identified and eliminated all mafia members.";
+        }
+    } else if (player.role === "detective") {
+        if (gameResults.winner === "innocents") {
+            roleSpecificResults.title = "🔍 DETECTIVE VICTORY!";
+            roleSpecificResults.personalMessage = player.isAlive ?
+                "Excellent work, Detective! Your investigations helped the town identify and eliminate the mafia!" :
+                "Victory! Your investigative work helped the town win, even after your sacrifice!";
+            roleSpecificResults.roleMessage = "Your detective skills were crucial in identifying the mafia threats.";
+        } else {
+            roleSpecificResults.title = "🔍 DETECTIVE DEFEATED";
+            roleSpecificResults.personalMessage = "The mafia has won. Your investigations weren't enough to save the town.";
+            roleSpecificResults.roleMessage = "Despite your efforts to uncover the truth, the mafia succeeded in their mission.";
+        }
+    } else if (player.role === "doctor") {
+        if (gameResults.winner === "innocents") {
+            roleSpecificResults.title = "💊 DOCTOR VICTORY!";
+            roleSpecificResults.personalMessage = player.isAlive ?
+                "Well done, Doctor! Your protection saved lives and helped the town defeat the mafia!" :
+                "Victory! Your medical expertise helped the town win, even after your elimination!";
+            roleSpecificResults.roleMessage = "Your healing abilities were vital in protecting innocent lives.";
+        } else {
+            roleSpecificResults.title = "💊 DOCTOR DEFEATED";
+            roleSpecificResults.personalMessage = "The mafia has won. You couldn't save enough lives to protect the town.";
+            roleSpecificResults.roleMessage = "Despite your medical skills, the mafia's attacks were too effective.";
+        }
+    } else { // townsfolk
+        if (gameResults.winner === "innocents") {
+            roleSpecificResults.title = "👥 TOWNSPERSON VICTORY!";
+            roleSpecificResults.personalMessage = player.isAlive ?
+                "Congratulations! You helped the town identify and eliminate the mafia threat!" :
+                "Victory! Your sacrifice helped the town achieve victory against the mafia!";
+            roleSpecificResults.roleMessage = "The power of the townspeople working together defeated the mafia.";
+        } else {
+            roleSpecificResults.title = "👥 TOWNSPERSON DEFEATED";
+            roleSpecificResults.personalMessage = "The mafia has taken control of the town. The innocent people have lost.";
+            roleSpecificResults.roleMessage = "The mafia successfully deceived and eliminated enough townspeople to win.";
+        }
+    }
+
+    return roleSpecificResults;
+}
+
+function checkPlayerVictory(player, gameResults) {
+    // Mafia wins if mafia team wins
+    if (player.role === "mafia") {
+        return gameResults.winner === "mafia";
+    }
+    // All other roles (detective, doctor, townsfolk) win if innocents win
+    else {
+        return gameResults.winner === "innocents";
+    }
 }
 
 // Game restart function

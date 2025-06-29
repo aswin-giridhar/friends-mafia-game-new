@@ -1437,6 +1437,302 @@ body {
     background: #ffed4e;
 }
 
+/* Role-Specific Game Results Styling */
+.game-result-title.victory {
+    color: #4CAF50;
+    text-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+}
+
+.game-result-title.defeat {
+    color: #F44336;
+    text-shadow: 0 0 20px rgba(244, 67, 54, 0.5);
+}
+
+.personal-outcome {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.personal-outcome.victory {
+    border: 2px solid #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.personal-outcome.defeat {
+    border: 2px solid #F44336;
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.outcome-header {
+    font-size: 2rem;
+    margin: 0 0 15px 0;
+    font-weight: bold;
+}
+
+.victory .outcome-header {
+    color: #4CAF50;
+    text-shadow: 0 0 15px rgba(76, 175, 80, 0.6);
+}
+
+.defeat .outcome-header {
+    color: #F44336;
+    text-shadow: 0 0 15px rgba(244, 67, 54, 0.6);
+}
+
+.player-role-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.role-label {
+    color: #ccc;
+    font-size: 1rem;
+}
+
+.role-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    padding: 5px 15px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.role-name.mafia {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.2);
+    border: 2px solid #ff6b6b;
+}
+
+.role-name.detective {
+    color: #4ecdc4;
+    background: rgba(78, 205, 196, 0.2);
+    border: 2px solid #4ecdc4;
+}
+
+.role-name.doctor {
+    color: #4caf50;
+    background: rgba(76, 175, 80, 0.2);
+    border: 2px solid #4caf50;
+}
+
+.role-name.townsfolk {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.2);
+    border: 2px solid #ffd700;
+}
+
+.survival-status {
+    font-size: 1rem;
+    font-weight: bold;
+    padding: 3px 12px;
+    border-radius: 15px;
+}
+
+.survival-status.survived {
+    color: #4CAF50;
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid #4CAF50;
+}
+
+.survival-status.eliminated {
+    color: #F44336;
+    background: rgba(244, 67, 54, 0.2);
+    border: 1px solid #F44336;
+}
+
+.personal-message {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.message-text {
+    font-size: 1.1rem;
+    color: #f4e4bc;
+    margin: 0 0 15px 0;
+    line-height: 1.5;
+    font-weight: bold;
+}
+
+.role-message {
+    font-size: 1rem;
+    color: #ccc;
+    margin: 0;
+    line-height: 1.4;
+    font-style: italic;
+}
+
+.game-summary {
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid #ffd700;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.game-summary p {
+    margin: 8px 0;
+    color: #f4e4bc;
+}
+
+.final-stats {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.final-stats h3 {
+    color: #ffd700;
+    text-align: center;
+    margin: 0 0 20px 0;
+    font-size: 1.3rem;
+}
+
+.player-entry {
+    margin: 8px 0;
+    padding: 5px 0;
+}
+
+.player-entry.current-player {
+    font-weight: bold;
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #ffd700;
+}
+
+.role-badge {
+    font-size: 0.8rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.role-badge.mafia {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.2);
+}
+
+.role-badge.detective {
+    color: #4ecdc4;
+    background: rgba(78, 205, 196, 0.2);
+}
+
+.role-badge.doctor {
+    color: #4caf50;
+    background: rgba(76, 175, 80, 0.2);
+}
+
+.role-badge.townsfolk {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.2);
+}
+
+/* Game Results Modal */
+.game-results-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    justify-content: center;
+    align-items: center;
+}
+
+.game-results-content {
+    background: linear-gradient(145deg, #2c1810, #3d2317);
+    padding: 30px;
+    border-radius: 15px;
+    border: 2px solid #ffd700;
+    max-width: 700px;
+    width: 90%;
+    text-align: center;
+    color: #fff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.game-result-title {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.game-result-content {
+    font-size: 1.1em;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.game-result-content h3 {
+    color: #ffd700;
+    margin: 20px 0 10px 0;
+}
+
+.game-result-content ul {
+    text-align: left;
+    padding-left: 20px;
+}
+
+.game-result-content li {
+    margin: 5px 0;
+}
+
+.game-results-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.game-results-buttons button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#play-again-btn {
+    background: linear-gradient(145deg, #4CAF50, #45a049);
+    color: white;
+}
+
+#play-again-btn:hover {
+    background: linear-gradient(145deg, #45a049, #3d8b40);
+    transform: translateY(-2px);
+}
+
+#restart-game-btn {
+    background: linear-gradient(145deg, #ff6b6b, #e55555);
+    color: white;
+}
+
+#restart-game-btn:hover {
+    background: linear-gradient(145deg, #e55555, #cc4444);
+    transform: translateY(-2px);
+}
+
 /* Responsive updates */
 @media (max-width: 768px) {
     .game-header {
@@ -1464,5 +1760,23 @@ body {
         top: 80px;
         height: calc(100vh - 160px);
         border-radius: 0;
+    }
+
+    .player-role-display {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .outcome-header {
+        font-size: 1.5rem;
+    }
+
+    .game-results-content {
+        max-width: 95%;
+        padding: 20px;
+    }
+
+    .game-result-title {
+        font-size: 2rem;
     }
 }

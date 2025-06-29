@@ -802,7 +802,7 @@ socket.on("character-speaking", (data) => {
 });
 
 socket.on("game-over", (data) => {
-    showGameResults(data);
+    showRoleSpecificGameResults(data);
 });
 
 socket.on("clear-speaker", () => {
@@ -871,6 +871,91 @@ function showGameResults(data) {
 
     content.innerHTML = resultHTML;
     modal.style.display = "flex";
+}
+
+// Enhanced role-specific game results function
+function showRoleSpecificGameResults(data) {
+    const modal = document.getElementById("game-results-modal");
+    const title = document.getElementById("game-result-title");
+    const content = document.getElementById("game-result-content");
+
+    // Use role-specific results if available, otherwise fall back to generic
+    const results = data.results;
+    const isVictory = results.playerOutcome === "victory";
+    
+    // Set title based on player's personal outcome
+    if (results.title) {
+        title.textContent = results.title;
+    } else {
+        title.textContent = results.winner === "mafia" ? "🔴 MAFIA WINS!" : "🔵 INNOCENTS WIN!";
+    }
+    
+    // Apply victory/defeat styling
+    title.className = `game-result-title ${isVictory ? 'victory' : 'defeat'}`;
+    
+    let resultHTML = `
+        <div class="personal-outcome ${isVictory ? 'victory' : 'defeat'}">
+            <h3 class="outcome-header">${isVictory ? '🎉 VICTORY!' : '💀 DEFEAT'}</h3>
+            <div class="player-role-display">
+                <span class="role-label">Your Role:</span>
+                <span class="role-name ${results.playerRole}">${results.playerRole.toUpperCase()}</span>
+                <span class="survival-status ${data.playerSurvived ? 'survived' : 'eliminated'}">
+                    ${data.playerSurvived ? '✅ Survived' : '💀 Eliminated'}
+                </span>
+            </div>
+        </div>
+        
+        <div class="personal-message">
+            <p class="message-text">${results.personalMessage}</p>
+            <p class="role-message">${results.roleMessage}</p>
+        </div>
+        
+        <div class="game-summary">
+            <p><strong>Game Outcome:</strong> ${results.reason}</p>
+            <p><strong>Game Duration:</strong> ${data.finalStats.rounds} rounds</p>
+        </div>
+        
+        <div class="final-stats">
+            <h3>Final Results:</h3>
+            <div style="display: flex; justify-content: space-around; text-align: left;">
+                <div>
+                    <h4>👥 Survivors:</h4>
+                    <ul>
+                        ${data.finalStats.survivors.map((p) => `
+                            <li class="player-entry ${p.name === window.playerData.name ? 'current-player' : ''}">
+                                ${p.name} 
+                                <span class="role-badge ${p.role}">(${p.role})</span>
+                            </li>
+                        `).join("")}
+                    </ul>
+                </div>
+                <div>
+                    <h4>💀 Eliminated:</h4>
+                    <ul>
+                        ${data.finalStats.eliminated.map((p) => `
+                            <li class="player-entry ${p.name === window.playerData.name ? 'current-player' : ''}">
+                                ${p.name} 
+                                <span class="role-badge ${p.role}">(${p.role})</span>
+                            </li>
+                        `).join("")}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+
+    content.innerHTML = resultHTML;
+    modal.style.display = "flex";
+    
+    // Show appropriate notification
+    const notificationType = isVictory ? 'success' : 'error';
+    const notificationMessage = isVictory ? 
+        `Congratulations! You achieved victory as ${results.playerRole}!` :
+        `Game over. You were defeated as ${results.playerRole}.`;
+    
+    setTimeout(() => {
+        showNotification(notificationMessage, notificationType, 8000);
+    }, 1000);
 }
 
 // Play again functionality

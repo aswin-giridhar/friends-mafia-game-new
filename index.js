@@ -7,6 +7,10 @@ const multer = require("multer");
 const { v4: uuidv4 } = require("uuid");
 require("dotenv").config();
 
+// OpenAI configuration
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_BASE_URL = "https://api.openai.com/v1";
+
 const friendsCharacters = require("./characters");
 
 const app = express();
@@ -93,6 +97,134 @@ async function generateVoice(text, voiceId) {
         console.error("ElevenLabs API Error:", error.message);
         return null;
     }
+}
+
+// OpenAI API function for dynamic conversation generation
+async function generateOpenAIDialogue(character, context) {
+    if (!OPENAI_API_KEY) {
+        console.log("OpenAI API key not found, falling back to rule-based dialogue");
+        return null;
+    }
+
+    try {
+        const characterData = friendsCharacters[character];
+        const gameContext = buildGameContext();
+        
+        const systemPrompt = `You are ${character} from Friends playing a Mafia game. 
+
+CHARACTER TRAITS:
+${characterData.traits.join(', ')}
+
+CURRENT GAME CONTEXT:
+- Phase: ${gameContext.phase}
+- Round: ${gameContext.round}
+- Alive Players: ${gameContext.alivePlayers.join(', ')}
+- Eliminated Players: ${gameContext.eliminatedPlayers.join(', ')}
+- Your Role: ${context.role}
+- Discussion Topic: ${context.topicType}
+- Target/Subject: ${context.target || 'None'}
+
+RECENT GAME EVENTS:
+${gameContext.recentEvents.join('\n')}
+
+CONVERSATION HISTORY (last 5 messages):
+${gameContext.recentConversations.slice(-5).map(msg => `${msg.speaker}: ${msg.message}`).join('\n')}
+
+INSTRUCTIONS:
+1. Stay completely in character as ${character}
+2. Use their signature speech patterns and catchphrases
+3. Respond to the current discussion topic: ${context.topicType}
+4. Keep responses under 150 characters for voice synthesis
+5. Be strategic based on your role but don't reveal it directly
+6. Reference recent game events naturally
+7. Show appropriate suspicion/trust based on game state
+
+Generate a single response that ${character} would say in this situation:`;
+
+        const response = await axios.post(
+            `${OPENAI_BASE_URL}/chat/completions`,
+            {
+                model: "gpt-4",
+                messages: [
+                    {
+                        role: "system",
+                        content: systemPrompt
+                    },
+                    {
+                        role: "user",
+                        content: `Generate ${character}'s response to the current situation. Topic: ${context.topicType}${context.target ? `, regarding ${context.target}` : ''}`
+                    }
+                ],
+                max_tokens: 100,
+                temperature: 0.8,
+                presence_penalty: 0.3,
+                frequency_penalty: 0.3
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        const generatedDialogue = response.data.choices[0].message.content.trim();
+        
+        // Clean up the response (remove quotes, ensure it's not too long)
+        const cleanDialogue = generatedDialogue
+            .replace(/^["']|["']$/g, '') // Remove surrounding quotes
+            .substring(0, 200); // Limit length for voice synthesis
+        
+        console.log(`OpenAI generated dialogue for ${character}: ${cleanDialogue}`);
+        return cleanDialogue;
+
+    } catch (error) {
+        console.error("OpenAI API Error:", error.message);
+        return null; // Fall back to rule-based system
+    }
+}
+
+// Build comprehensive game context for OpenAI
+function buildGameContext() {
+    const recentEvents = [];
+    const recentConversations = [];
+    
+    // Add recent eliminations
+    if (gameState.eliminatedPlayers.length > 0) {
+        const lastEliminated = gameState.eliminatedPlayers[gameState.eliminatedPlayers.length - 1];
+        recentEvents.push(`${lastEliminated.name || lastEliminated.playerName} was recently eliminated (${lastEliminated.role})`);
+    }
+    
+    // Add investigation results context
+    if (gameState.investigationResults.size > 0) {
+        gameState.investigationResults.forEach((result, detective) => {
+            recentEvents.push(`${detective} investigated ${result.target} and found they are ${result.isMafia ? 'suspicious' : 'innocent'}`);
+        });
+    }
+    
+    // Add suspicion levels
+    if (gameState.suspicionLevels.size > 0) {
+        const topSuspicions = Array.from(gameState.suspicionLevels.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+        topSuspicions.forEach(([player, level]) => {
+            recentEvents.push(`${player} has high suspicion level (${level})`);
+        });
+    }
+    
+    // Add recent conversations
+    if (mcpManager.gameHistory.length > 0) {
+        recentConversations.push(...mcpManager.gameHistory.slice(-10));
+    }
+    
+    return {
+        phase: gameState.phase,
+        round: gameState.round,
+        alivePlayers: gameState.alivePlayers.map(p => p.name || p.playerName),
+        eliminatedPlayers: gameState.eliminatedPlayers.map(p => p.name || p.playerName),
+        recentEvents: recentEvents.length > 0 ? recentEvents : ['Game just started'],
+        recentConversations: recentConversations
+    };
 }
 
 // Enhanced MCP Manager with contextual mafia responses and chat history
@@ -535,7 +667,23 @@ class AIDiscussionManager {
     }
 
     // Generate character-specific dialogue based on personality
-    generateCharacterDialogue(speaker, topic) {
+    async generateCharacterDialogue(speaker, topic) {
+        // Try OpenAI first for dynamic, contextual dialogue
+        const openAIDialogue = await generateOpenAIDialogue(speaker.name, {
+            role: speaker.role,
+            topicType: topic.type,
+            target: topic.target,
+            content: topic.content
+        });
+
+        // If OpenAI succeeds, use it; otherwise fall back to rule-based
+        if (openAIDialogue) {
+            console.log(`Using OpenAI dialogue for ${speaker.name}: ${openAIDialogue}`);
+            return openAIDialogue;
+        }
+
+        // Fallback to rule-based dialogue generation
+        console.log(`Falling back to rule-based dialogue for ${speaker.name}`);
         const characterData = friendsCharacters[speaker.name];
         let baseDialogue = topic.content;
 

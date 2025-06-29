@@ -54,9 +54,9 @@ let gameState = {
 
 // Game configuration
 const GAME_CONFIG = {
-    nightPhaseDuration: 30, // 30 seconds for demo (normally 2-3 minutes)
-    discussionDuration: 180, // 3 minutes
-    votingDuration: 60, // 1 minute
+    nightPhaseDuration: 10, // 10 seconds (reduced by 3x from 30)
+    discussionDuration: 90, // 90 seconds (reduced by 2x from 180)
+    votingDuration: 20, // 20 seconds (reduced by 3x from 60)
     minPlayers: 4,
     maxPlayers: 8,
 };

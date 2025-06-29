@@ -201,6 +201,7 @@ function handleVoiceInput(transcript) {
     socket.emit("voice-input", {
         transcript: transcript,
         targetCharacter: selectedCharacter,
+        playerName: window.playerData.name
     });
 }
 
@@ -256,6 +257,7 @@ accuseButton.addEventListener("click", () => {
         socket.emit("voice-input", {
             transcript: message,
             targetCharacter: selectedCharacter,
+            playerName: window.playerData.name
         });
 
         updateDialogue(`You publicly accused ${selectedCharacter}!`);

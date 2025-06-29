@@ -90,70 +90,232 @@ async function generateVoice(text, voiceId) {
     }
 }
 
-// Enhanced MCP Manager with role-based responses
+// Enhanced MCP Manager with contextual mafia responses and chat history
 class MCPManager {
     constructor() {
         this.conversations = new Map();
-        this.gameContext = null;
+        this.gameHistory = []; // Store all game conversations
     }
 
-    setGameContext(context) {
-        this.gameContext = context;
-    }
-
-    generateResponse(character, context, gamePhase) {
+    generateResponse(character, userInput, gameContext) {
         const characterData = friendsCharacters[character];
         const conversation = this.conversations.get(character) || [];
-
-        let response = this.selectContextualResponse(
-            characterData,
-            context,
-            gamePhase,
-        );
-
-        conversation.push({ role: "system", content: context });
-        conversation.push({ role: "assistant", content: response });
-        this.conversations.set(character, conversation.slice(-10));
-
+        
+        // Add user input to conversation history
+        conversation.push({ 
+            role: "user", 
+            content: userInput,
+            timestamp: new Date(),
+            speaker: gameContext.playerName || "Player"
+        });
+        
+        // Generate contextual response
+        let response = this.selectContextualResponse(characterData, userInput, gameContext, conversation);
+        
+        // Add AI response to conversation history
+        conversation.push({ 
+            role: "assistant", 
+            content: response,
+            timestamp: new Date(),
+            speaker: character
+        });
+        
+        // Store in game history for chat display
+        this.gameHistory.push({
+            character: gameContext.playerName || "Player",
+            message: userInput,
+            timestamp: new Date(),
+            type: "player"
+        });
+        
+        this.gameHistory.push({
+            character: character,
+            message: response,
+            timestamp: new Date(),
+            type: "ai"
+        });
+        
+        this.conversations.set(character, conversation.slice(-20)); // Keep last 20 exchanges
+        
         return response;
     }
 
-    selectContextualResponse(characterData, context, gamePhase) {
+    selectContextualResponse(characterData, userInput, gameContext, conversation) {
         const { traits, catchphrases, mafiaRole } = characterData;
-
-        // Phase-specific responses
-        if (gamePhase === "night") {
-            if (mafiaRole === "mafia") {
-                return "The night is perfect for... activities. *whispers suspiciously*";
-            } else if (mafiaRole === "doctor") {
-                return "I need to protect someone tonight. Who needs my help?";
-            } else if (mafiaRole === "detective") {
-                return "Time to investigate. Someone here isn't who they seem...";
-            }
-            return "It's so quiet tonight... too quiet.";
+        const phase = gameContext.phase;
+        const round = gameContext.round;
+        
+        // Analyze conversation context
+        const recentMessages = conversation.slice(-6);
+        const suspiciousKeywords = ['suspicious', 'mafia', 'kill', 'eliminate', 'vote', 'accuse'];
+        const hasBeenAccused = recentMessages.some(msg => 
+            msg.content.toLowerCase().includes('accuse') && msg.role === 'user'
+        );
+        
+        // Character-specific responses based on role and personality
+        if (character === 'Joey') {
+            return this.getJoeyResponse(userInput, phase, hasBeenAccused, gameContext);
+        } else if (character === 'Phoebe') {
+            return this.getPhoebeResponse(userInput, phase, mafiaRole, gameContext);
+        } else if (character === 'Chandler') {
+            return this.getChandlerResponse(userInput, phase, mafiaRole, gameContext);
+        } else if (character === 'Rachel') {
+            return this.getRachelResponse(userInput, phase, hasBeenAccused, gameContext);
+        } else if (character === 'Ross') {
+            return this.getRossResponse(userInput, phase, gameContext);
+        } else if (character === 'Monica') {
+            return this.getMonicaResponse(userInput, phase, mafiaRole, gameContext);
         }
-
-        if (gamePhase === "discussion") {
-            if (context.includes("eliminated")) {
-                const responses = [
-                    "This is terrible! We need to find who did this!",
-                    "The mafia struck again. We must be more careful.",
-                    "Someone among us is not who they seem...",
-                ];
-                return responses[Math.floor(Math.random() * responses.length)];
-            }
-        }
-
-        if (context.includes("accused")) {
-            if (mafiaRole === "mafia") {
-                return "Me? That's ridiculous! I would never hurt anyone here!";
-            } else {
-                return "I'm innocent! You're making a huge mistake!";
-            }
-        }
-
-        // Default character-specific responses
+        
         return catchphrases[Math.floor(Math.random() * catchphrases.length)];
+    }
+
+    getJoeyResponse(userInput, phase, hasBeenAccused, gameContext) {
+        if (hasBeenAccused) {
+            return "Whoa, whoa, whoa! Me? I would never hurt anyone! I'm just here for the sandwiches, okay?";
+        }
+        
+        if (userInput.toLowerCase().includes('food') || userInput.toLowerCase().includes('sandwich')) {
+            return "Did someone say food? Look, I don't know about this mafia stuff, but Joey doesn't share food!";
+        }
+        
+        if (phase === 'night') {
+            return "It's so quiet... I'm kinda hungry. Anyone else thinking about late night snacks right now?";
+        }
+        
+        if (phase === 'discussion') {
+            const responses = [
+                "I don't really understand this whole mafia thing, but someone's being really mean, right?",
+                "How you doin'? I mean, besides the whole someone-might-be-evil thing.",
+                "Can we talk about this over pizza? I think better when I'm eating.",
+                "I'm confused. Who's the bad guy again? And why can't we all just get along?"
+            ];
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+        
+        if (phase === 'voting') {
+            return "Voting? Like for class president? I never understood politics. Can't we just rock-paper-scissors?";
+        }
+        
+        return "How you doin'? This whole situation is making me nervous. And hungry.";
+    }
+
+    getPhoebeResponse(userInput, phase, mafiaRole, gameContext) {
+        if (mafiaRole === 'mafia') {
+            if (phase === 'night') {
+                return "*humming mysteriously* The spirits are telling me... interesting things tonight.";
+            }
+            if (userInput.toLowerCase().includes('accuse')) {
+                return "Accusing me? That's like, really bad karma. The universe doesn't like when people point fingers.";
+            }
+        }
+        
+        if (userInput.toLowerCase().includes('song') || userInput.toLowerCase().includes('music')) {
+            return "Smelly cat, smelly cat, what are they feeding you? Wait, that's not about mafia... or is it?";
+        }
+        
+        if (phase === 'discussion') {
+            const responses = [
+                "I had a dream about this! There was a dark aura around someone, but I can't remember who...",
+                "My grandmother's spirit is trying to tell me something, but she's being really cryptic.",
+                "The vibes in here are so intense. Someone's definitely hiding something negative.",
+                "I don't like accusing people, but my crystals are pointing toward... someone suspicious."
+            ];
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+        
+        return "Oh, this is like that time I helped the police catch that guy! Except more confusing.";
+    }
+
+    getChandlerResponse(userInput, phase, mafiaRole, gameContext) {
+        if (mafiaRole === 'detective') {
+            if (phase === 'night') {
+                return "Could this BE any more mysterious? I'm trying to figure out who's who here...";
+            }
+            if (phase === 'discussion') {
+                return "So let me get this straight - someone here is pretending to be innocent? In MY statistical analysis, the odds are... well, complicated.";
+            }
+        }
+        
+        if (userInput.toLowerCase().includes('accuse')) {
+            return "Could this BE any more dramatic? I'm being accused? What's next, someone's gonna blame me for the '94 Rangers loss?";
+        }
+        
+        if (phase === 'voting') {
+            return "So we're voting people off? Could this BE any more like a really twisted game show?";
+        }
+        
+        const responses = [
+            "Could this mafia situation BE any more confusing? I process data, not... whatever this is.",
+            "I'm not great at reading people. Could I interest you in some statistical analysis instead?",
+            "This is like my job, except instead of boring reports, people might actually die. Fun!",
+            "Hi, I'm Chandler. I make jokes when I'm terrified of being murdered."
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    getRachelResponse(userInput, phase, hasBeenAccused, gameContext) {
+        if (hasBeenAccused) {
+            return "Excuse me? I am NOT mafia! I work in fashion, not... whatever evil people do!";
+        }
+        
+        if (phase === 'discussion') {
+            const responses = [
+                "Okay, so like, someone here is totally lying and I do NOT appreciate it!",
+                "This is worse than working at Bloomingdale's during Black Friday!",
+                "I may not know much about crime, but I know when someone's being shady!",
+                "OMG, this is so stressful! Can we please just figure out who the bad person is?"
+            ];
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+        
+        return "I am so not equipped for this! I deal with fashion emergencies, not actual emergencies!";
+    }
+
+    getRossResponse(userInput, phase, gameContext) {
+        if (userInput.toLowerCase().includes('dinosaur')) {
+            return "Did someone mention dinosaurs? Because statistically, a velociraptor would be the perfect mafia member...";
+        }
+        
+        if (phase === 'discussion') {
+            const responses = [
+                "As a paleontologist, I'm trained to analyze evidence. And the evidence suggests... someone's lying.",
+                "This reminds me of pack hunting behavior in prehistoric predators. Very concerning.",
+                "Scientifically speaking, human deception patterns are fascinating. And terrifying.",
+                "We need to approach this methodically. Like carbon dating, but for catching liars."
+            ];
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+        
+        return "This is more stressful than when the museum moved my dinosaur exhibit!";
+    }
+
+    getMonicaResponse(userInput, phase, mafiaRole, gameContext) {
+        if (mafiaRole === 'doctor') {
+            if (phase === 'night') {
+                return "I need to keep everyone safe! That's what I do - I take care of people!";
+            }
+        }
+        
+        if (phase === 'discussion') {
+            const responses = [
+                "I KNOW someone here is lying! I can always tell when people aren't being honest!",
+                "This is like organizing a dinner party, except someone wants to murder the guests!",
+                "We need rules! Structure! A proper system for catching the bad guy!",
+                "I'm getting my competitive face on. Someone's going DOWN!"
+            ];
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+        
+        return "Rules help control the fun! And apparently, help catch murderers!";
+    }
+
+    getGameHistory() {
+        return this.gameHistory;
+    }
+
+    clearHistory() {
+        this.gameHistory = [];
     }
 }
 
@@ -555,15 +717,18 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Handle voice input with phase-appropriate responses
+    // Handle voice input with enhanced contextual responses and chat history
     socket.on("voice-input", async (data) => {
-        const { transcript, targetCharacter } = data;
+        const { transcript, targetCharacter, playerName } = data;
 
-        const context = `Phase: ${gameState.phase}, Round: ${gameState.round}, Input: ${transcript}`;
         const aiResponse = mcpManager.generateResponse(
             targetCharacter,
-            context,
-            gameState.phase,
+            transcript,
+            { 
+                phase: gameState.phase, 
+                round: gameState.round,
+                playerName: playerName
+            }
         );
 
         const audioBuffer = await generateVoice(
@@ -576,6 +741,11 @@ io.on("connection", (socket) => {
             dialogue: aiResponse,
             audio: audioBuffer ? audioBuffer.toString("base64") : null,
         });
+
+        // Send updated chat history to all clients
+        io.emit('chat-history-update', mcpManager.getGameHistory());
+
+        setTimeout(() => io.emit("clear-speaker"), 3000);
     });
 
     // Handle voting (only during voting phase)
@@ -598,9 +768,20 @@ io.on("connection", (socket) => {
         }
     });
 
+    // Handle clear chat history
+    socket.on('clear-chat-history', () => {
+        mcpManager.clearHistory();
+        io.emit('chat-history-update', []);
+    });
+
     socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id);
     });
+});
+
+// Add route to get chat history
+app.get('/api/chat-history', (req, res) => {
+    res.json(mcpManager.getGameHistory());
 });
 
 const PORT = process.env.PORT || 3000;

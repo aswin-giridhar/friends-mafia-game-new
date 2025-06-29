@@ -1,6 +1,6 @@
 const friendsCharacters = {
     Joey: {
-        voiceId: "EXAVITQu4vr4xnSDxMaL",
+        voiceId: "WVTG9HXbFRQW6zn8Axbm", // Custom cloned voice
         traits: ["food-obsessed", "loyal", "actor", "ladies-man"],
         catchphrases: [
             "How you doin'?",
@@ -11,7 +11,7 @@ const friendsCharacters = {
         mafiaRole: "townsfolk",
     },
     Phoebe: {
-        voiceId: "21m00Tcm4TlvDq8ikWAM",
+        voiceId: "gb5HhXqErk46f0Iulq8Q", // Custom cloned voice
         traits: ["quirky", "musical", "spiritual", "unpredictable"],
         catchphrases: [
             "Smelly cat, smelly cat, what are they feeding you?",
@@ -22,7 +22,7 @@ const friendsCharacters = {
         mafiaRole: "mafia",
     },
     Chandler: {
-        voiceId: "pNInz6obpgDQGcFmaJgB",
+        voiceId: "YskDLM3RdEEpGeM2oE11", // Custom cloned voice
         traits: ["sarcastic", "statistical", "commitment-phobic"],
         catchphrases: [
             "Could this BE any more obvious?",
@@ -33,7 +33,7 @@ const friendsCharacters = {
         mafiaRole: "detective",
     },
     Rachel: {
-        voiceId: "ThT5KcBeYPX3keUQqHPh",
+        voiceId: "BhhqfjKrKJRL9CSUDPf0", // Custom cloned voice
         traits: ["fashion-conscious", "dramatic", "spoiled-turned-independent"],
         catchphrases: [
             "No uterus, no opinion!",
@@ -44,7 +44,7 @@ const friendsCharacters = {
         mafiaRole: "townsfolk",
     },
     Ross: {
-        voiceId: "yoZ06aMxZJJ28mfd3POQ",
+        voiceId: "IZHsE4RmAyds0c4ZQqV3", // Custom cloned voice
         traits: ["paleontologist", "nerdy", "jealous", "dinosaur-obsessed"],
         catchphrases: [
             "We were on a break!",
@@ -55,7 +55,7 @@ const friendsCharacters = {
         mafiaRole: "townsfolk",
     },
     Monica: {
-        voiceId: "XB0fDUnXU5powFXDhCwa",
+        voiceId: "ds2HzhI5xpP3ceUpW90I", // Custom cloned voice
         traits: ["chef", "cleaning-obsessed", "competitive", "controlling"],
         catchphrases: [
             "I KNOW!",

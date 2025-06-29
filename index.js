@@ -321,6 +321,114 @@ class MCPManager {
 
 const mcpManager = new MCPManager();
 
+// Enhanced AI Strategy Functions
+function selectStrategicMafiaTarget(aliveTargets, aliveMafia) {
+    // Priority system for mafia target selection
+    const targetPriorities = [];
+    
+    aliveTargets.forEach(target => {
+        let priority = 0;
+        let reasoning = "";
+        
+        // High priority: Detective (threat to mafia)
+        if (target.role === "detective") {
+            priority += 100;
+            reasoning = "Detective - high threat";
+        }
+        
+        // Medium-high priority: Doctor (can save targets)
+        else if (target.role === "doctor") {
+            priority += 80;
+            reasoning = "Doctor - can protect targets";
+        }
+        
+        // Medium priority: Active townspeople
+        else if (target.role === "townsfolk") {
+            priority += 50;
+            reasoning = "Townsperson - standard target";
+        }
+        
+        // Add randomness to avoid predictable patterns
+        priority += Math.random() * 20;
+        
+        targetPriorities.push({
+            target: target,
+            priority: priority,
+            reasoning: reasoning
+        });
+    });
+    
+    // Sort by priority (highest first)
+    targetPriorities.sort((a, b) => b.priority - a.priority);
+    
+    // Log AI decision making for debugging
+    console.log("AI Mafia target selection:");
+    targetPriorities.forEach((item, index) => {
+        console.log(`${index + 1}. ${item.target.name || item.target.playerName} - Priority: ${item.priority.toFixed(1)} (${item.reasoning})`);
+    });
+    
+    // Return highest priority target
+    return targetPriorities[0].target;
+}
+
+function enhanceAIVotingBehavior() {
+    // Enhanced AI voting with role-based strategies
+    const votingStrategies = new Map();
+    
+    gameState.aiPersonas.filter(p => p.isAlive).forEach(persona => {
+        const strategy = getVotingStrategy(persona);
+        votingStrategies.set(persona.name, strategy);
+    });
+    
+    return votingStrategies;
+}
+
+function getVotingStrategy(aiPersona) {
+    const aliveTargets = gameState.alivePlayers.filter(p => p !== aiPersona);
+    const targetScores = new Map();
+    
+    aliveTargets.forEach(target => {
+        let score = 0;
+        let reasoning = [];
+        
+        if (aiPersona.role === "mafia") {
+            // Mafia strategy: Vote for innocents, avoid other mafia
+            if (target.role === "mafia") {
+                score -= 1000; // Never vote for mafia partner
+                reasoning.push("Mafia partner - avoid");
+            } else if (target.role === "detective") {
+                score += 200; // High priority to eliminate detective
+                reasoning.push("Detective - eliminate threat");
+            } else if (target.role === "doctor") {
+                score += 150; // High priority to eliminate doctor
+                reasoning.push("Doctor - eliminate protection");
+            } else {
+                score += 100; // Standard innocent target
+                reasoning.push("Innocent - standard target");
+            }
+        } else {
+            // Innocent strategy: Try to identify and vote for mafia
+            if (target.role === "mafia") {
+                score += 300; // High priority to vote for actual mafia
+                reasoning.push("Suspected mafia - eliminate");
+            } else {
+                score += Math.random() * 50; // Random voting among innocents
+                reasoning.push("Uncertain - random choice");
+            }
+        }
+        
+        // Add some randomness to make AI less predictable
+        score += (Math.random() - 0.5) * 30;
+        
+        targetScores.set(target, {
+            score: score,
+            reasoning: reasoning.join(", ")
+        });
+    });
+    
+    return targetScores;
+}
+
 // Game Logic Functions
 function initializeGame() {
     // Define all 7 roles for the game (1 human + 6 AI)
@@ -437,7 +545,7 @@ function processNightActions() {
     // Process player night actions first
     const playerActions = Array.from(gameState.nightActions.values());
     
-    // Determine mafia target (prioritize player action if mafia)
+    // Determine mafia target with enhanced coordination
     let mafiaTarget = null;
     const playerMafiaAction = playerActions.find(action => action.role === "mafia");
     
@@ -448,13 +556,28 @@ function processNightActions() {
         );
         mafiaTarget = target;
         narrative += `🔪 The mafia targeted ${playerMafiaAction.target}...\n`;
+        
+        // Send coordination info to player if they're mafia
+        const playerMafia = Array.from(gameState.players.values()).find(p => p.role === "mafia");
+        if (playerMafia) {
+            const aiMafiaPartner = gameState.aiPersonas.find(p => p.isAlive && p.role === "mafia");
+            if (aiMafiaPartner) {
+                privateInfo.set("mafia", {
+                    message: `Your partner ${aiMafiaPartner.name} agreed with your target choice: ${playerMafiaAction.target}`,
+                    partnerName: aiMafiaPartner.name,
+                    targetAgreed: true,
+                    coordination: "successful"
+                });
+            }
+        }
     } else {
-        // AI mafia chooses target
+        // AI mafia chooses target with strategic coordination
         const aliveMafia = gameState.aiPersonas.filter(p => p.isAlive && p.role === "mafia");
         const aliveTargets = gameState.alivePlayers.filter(p => p.role !== "mafia");
         
         if (aliveMafia.length > 0 && aliveTargets.length > 0) {
-            mafiaTarget = aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
+            // Enhanced AI target selection with strategic priorities
+            mafiaTarget = selectStrategicMafiaTarget(aliveTargets, aliveMafia);
             narrative += `🔪 The mafia targeted ${mafiaTarget.name || mafiaTarget.playerName}...\n`;
         }
     }
@@ -569,21 +692,41 @@ function startVotingPhase() {
     gameState.votes.clear();
     startPhase("voting", GAME_CONFIG.votingDuration);
 
-    // AI votes randomly
+    // Enhanced AI voting with strategic behavior
     setTimeout(() => {
+        const votingStrategies = enhanceAIVotingBehavior();
+        
         gameState.aiPersonas
             .filter((p) => p.isAlive)
             .forEach((persona) => {
-                const targets = gameState.alivePlayers.filter(
-                    (p) => p !== persona,
-                );
-                if (targets.length > 0) {
-                    const target =
-                        targets[Math.floor(Math.random() * targets.length)];
-                    gameState.votes.set(
-                        persona.name,
-                        target.name || target.playerName,
-                    );
+                const strategy = votingStrategies.get(persona.name);
+                if (strategy && strategy.size > 0) {
+                    // Find target with highest score
+                    let bestTarget = null;
+                    let bestScore = -Infinity;
+                    
+                    strategy.forEach((scoreData, target) => {
+                        if (scoreData.score > bestScore) {
+                            bestScore = scoreData.score;
+                            bestTarget = target;
+                        }
+                    });
+                    
+                    if (bestTarget) {
+                        gameState.votes.set(persona.name, bestTarget.name || bestTarget.playerName);
+                        
+                        // Log AI voting decision for debugging
+                        const scoreData = strategy.get(bestTarget);
+                        console.log(`${persona.name} (${persona.role}) voted for ${bestTarget.name || bestTarget.playerName} - Score: ${scoreData.score.toFixed(1)} (${scoreData.reasoning})`);
+                    }
+                } else {
+                    // Fallback to random voting if strategy fails
+                    const targets = gameState.alivePlayers.filter(p => p !== persona);
+                    if (targets.length > 0) {
+                        const target = targets[Math.floor(Math.random() * targets.length)];
+                        gameState.votes.set(persona.name, target.name || target.playerName);
+                        console.log(`${persona.name} voted randomly for ${target.name || target.playerName}`);
+                    }
                 }
             });
 

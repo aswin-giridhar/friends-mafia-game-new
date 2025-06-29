@@ -7,7 +7,7 @@ const friendsCharacters = {
             "Joey doesn't share food!",
             "It's not that common, it doesn't happen to every guy, and it IS a big deal!",
         ],
-        image: "joey.jpg",
+        image: "joey.png",
         mafiaRole: "townsfolk",
     },
     Phoebe: {
@@ -18,7 +18,7 @@ const friendsCharacters = {
             "I don't even have a 'pla'",
             "Oh no! My grandfather would have hated this!",
         ],
-        image: "phoebe.jpg",
+        image: "phoebe.png",
         mafiaRole: "mafia",
     },
     Chandler: {
@@ -29,7 +29,7 @@ const friendsCharacters = {
             "I'm not great at the advice. Can I interest you in a sarcastic comment?",
             "Hi, I'm Chandler. I make jokes when I'm uncomfortable.",
         ],
-        image: "chandler.jpg",
+        image: "chandler.png",
         mafiaRole: "detective",
     },
     Rachel: {
@@ -40,7 +40,7 @@ const friendsCharacters = {
             "It's like all my life everyone's told me, 'You're a shoe!'",
             "I got off the plane!",
         ],
-        image: "rachel.jpg",
+        image: "rachel.png",
         mafiaRole: "townsfolk",
     },
     Ross: {
@@ -51,7 +51,7 @@ const friendsCharacters = {
             "Pivot! PIVOT!",
             "My sandwich? MY SANDWICH?!",
         ],
-        image: "ross.jpg",
+        image: "ross.png",
         mafiaRole: "townsfolk",
     },
     Monica: {
@@ -62,7 +62,7 @@ const friendsCharacters = {
             "Rules help control the fun!",
             "Welcome to the real world. It sucks. You're gonna love it.",
         ],
-        image: "monica.jpg",
+        image: "monica.png",
         mafiaRole: "doctor",
     },
 };

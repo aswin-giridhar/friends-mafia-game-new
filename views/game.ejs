@@ -26,7 +26,7 @@
                 </div>
             </div>
             <div class="player-info">
-                <img src="/images/players/<%= player.photo %>" alt="<%= player.playerName %>" class="player-avatar">
+                <img src="<%= player.isUploaded ? '/images/players/' + player.photo : player.photo %>" alt="<%= player.playerName %>" class="player-avatar">
                 <div class="player-details">
                     <span class="player-name">Welcome, <%= player.playerName %>!</span>
                     <div class="player-role-container">
@@ -297,16 +297,16 @@
 
     <!-- Hidden player data for JavaScript -->
     <script>
-        window.playerData = {
-            id: '<%= player.id %>',
-            name: '<%= player.playerName %>',
-            isAlive: <%= JSON.stringify(player.isAlive || true) %>
-        };
-        window.gameState = {
-            phase: '<%= gameState.phase %>',
-            round: <%= JSON.stringify(gameState.round) %>,
-            alivePlayers: <%= JSON.stringify(gameState.alivePlayers) %>
-        };
+        window.playerData = <%- JSON.stringify({
+            id: player.id,
+            name: player.playerName,
+            isAlive: player.isAlive || true
+        }) %>;
+        window.gameState = <%- JSON.stringify({
+            phase: gameState.phase,
+            round: gameState.round,
+            alivePlayers: gameState.alivePlayers
+        }) %>;
     </script>
 
     <script src="/socket.io/socket.io.js"></script>

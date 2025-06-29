@@ -1795,13 +1795,25 @@ app.get("/", (req, res) => {
 
 app.post("/start-game", upload.single("playerPhoto"), (req, res) => {
     const playerName = req.body.playerName;
-    const playerPhoto = req.file ? req.file.filename : "default-player.jpg";
+    let playerPhoto;
+
+    if (req.file) {
+        // User uploaded a photo
+        playerPhoto = req.file.filename;
+    } else {
+        // Generate a random avatar using a placeholder service
+        const avatarStyles = ['adventurer', 'avataaars', 'big-ears', 'big-smile', 'croodles', 'fun-emoji', 'icons', 'identicon', 'initials', 'lorelei', 'micah', 'miniavs', 'open-peeps', 'personas', 'pixel-art'];
+        const randomStyle = avatarStyles[Math.floor(Math.random() * avatarStyles.length)];
+        const seed = encodeURIComponent(playerName + Date.now()); // Use player name + timestamp as seed
+        playerPhoto = `https://api.dicebear.com/7.x/${randomStyle}/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+    }
 
     const playerId = uuidv4();
     gameState.players.set(playerId, {
         id: playerId,
         playerName: playerName,
         photo: playerPhoto,
+        isUploaded: !!req.file, // Track if photo was uploaded or generated
         role: "townsfolk",
         isAlive: true,
         votes: 0,

@@ -634,8 +634,10 @@ body {
     border-radius: 20px;
     padding: 30px;
     text-align: center;
-    max-width: 500px;
+    max-width: 90vw;
     width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
 }
 
 #game-result-title {
@@ -652,8 +654,10 @@ body {
 
 /* Voting Results Modal Styles */
 .voting-results {
-    max-width: 600px;
+    max-width: 90vw;
     width: 95%;
+    max-height: 85vh;
+    overflow-y: auto;
 }
 
 .elimination-announcement {
@@ -746,9 +750,10 @@ body {
 
 /* Voting History Modal Styles */
 .voting-history {
-    max-width: 700px;
+    max-width: 90vw;
     width: 95%;
-    max-height: 80vh;
+    max-height: 85vh;
+    overflow-y: auto;
 }
 
 .voting-history-header {

@@ -46,6 +46,7 @@ let gameState = {
     phaseTimer: null,
     timeRemaining: 0,
     nightActions: new Map(), // Store night actions
+    votingHistory: [], // Store all voting rounds for the current game
     gameResults: {
         winner: null,
         reason: "",
@@ -912,6 +913,17 @@ function processVotes() {
 
             updateAlivePlayers();
 
+            // Store voting round in history
+            const votingRound = {
+                round: gameState.round,
+                timestamp: new Date().toLocaleString(),
+                eliminatedPlayer: eliminatedPlayer,
+                eliminatedRole: player.role,
+                voteBreakdown: Array.from(voteCount.entries()),
+                votingDetails: Array.from(gameState.votes.entries())
+            };
+            gameState.votingHistory.push(votingRound);
+
             io.emit("player-eliminated", {
                 playerName: eliminatedPlayer,
                 role: player.role,
@@ -1304,9 +1316,17 @@ io.on("connection", (socket) => {
         io.emit('chat-history-update', []);
     });
 
+    // Handle voting history request
+    socket.on("get-voting-history", () => {
+        socket.emit("voting-history-update", gameState.votingHistory);
+    });
+
     // Handle game restart
     socket.on("restart-game", () => {
         resetGame();
+        
+        // Clear voting history
+        gameState.votingHistory = [];
         
         // Notify all clients of game restart
         io.emit("game-restarted", {

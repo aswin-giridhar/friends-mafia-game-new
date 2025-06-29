@@ -1404,7 +1404,23 @@ function showVotingHistory() {
     const modal = document.getElementById('voting-history-modal');
     const content = document.getElementById('voting-history-content');
     
-    if (votingHistory.length === 0) {
+    // Request voting history from server
+    socket.emit('get-voting-history');
+    
+    // Show loading message while waiting for data
+    content.innerHTML = `
+        <div class="no-votes-message">
+            <p>Loading voting history...</p>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+function displayVotingHistory(serverVotingHistory) {
+    const content = document.getElementById('voting-history-content');
+    
+    if (serverVotingHistory.length === 0) {
         content.innerHTML = `
             <div class="no-votes-message">
                 <p>No voting rounds completed yet.</p>
@@ -1412,7 +1428,7 @@ function showVotingHistory() {
             </div>
         `;
     } else {
-        content.innerHTML = votingHistory.map((round, index) => `
+        content.innerHTML = serverVotingHistory.map((round, index) => `
             <div class="voting-round">
                 <div class="voting-round-header">
                     <h3 class="round-title">Round ${round.round} - Voting Results</h3>
@@ -1443,8 +1459,6 @@ function showVotingHistory() {
             </div>
         `).join('');
     }
-    
-    modal.style.display = 'flex';
 }
 
 function closeVotingHistory() {
@@ -1492,6 +1506,11 @@ function addVotingRound(data) {
     
     votingHistory.push(votingRound);
 }
+
+// Socket handler for voting history updates
+socket.on('voting-history-update', (serverVotingHistory) => {
+    displayVotingHistory(serverVotingHistory);
+});
 
 // Initialize button states
 updateButtonStates();

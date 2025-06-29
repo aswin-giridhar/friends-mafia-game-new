@@ -103,19 +103,88 @@
                 <div id="current-dialogue">Welcome to Central Perk Mafia! Get ready for a game of deception and strategy.</div>
             </div>
 
-            <div class="player-actions">
-                <button id="mic-button" class="action-btn">🎤 Hold to Speak</button>
-                <button id="vote-button" class="action-btn" disabled>📊 Vote</button>
-                <button id="accuse-button" class="action-btn" disabled>👆 Accuse</button>
+            <!-- Role-Specific Night Action Panels -->
+            <div id="night-action-panel" class="night-action-panel" style="display:none;">
+                <!-- Mafia Action Panel -->
+                <div id="mafia-action-panel" class="role-action-panel" style="display:none;">
+                    <div class="action-panel-header">
+                        <h3>🔴 Mafia Night Action</h3>
+                        <p>Choose a target to eliminate with your partner</p>
+                    </div>
+                    <div class="action-panel-content">
+                        <div class="target-selection">
+                            <label>Select Target:</label>
+                            <div id="mafia-target-list" class="target-list"></div>
+                        </div>
+                        <div class="partner-info">
+                            <span>Partner: <span id="mafia-partner-name">Unknown</span></span>
+                        </div>
+                        <button id="mafia-confirm-btn" class="action-btn" disabled>🔪 Confirm Elimination</button>
+                    </div>
+                </div>
+
+                <!-- Detective Action Panel -->
+                <div id="detective-action-panel" class="role-action-panel" style="display:none;">
+                    <div class="action-panel-header">
+                        <h3>🔍 Detective Investigation</h3>
+                        <p>Investigate one player to learn their role</p>
+                    </div>
+                    <div class="action-panel-content">
+                        <div class="target-selection">
+                            <label>Select Target to Investigate:</label>
+                            <div id="detective-target-list" class="target-list"></div>
+                        </div>
+                        <button id="detective-confirm-btn" class="action-btn" disabled>🔍 Investigate</button>
+                    </div>
+                </div>
+
+                <!-- Doctor Action Panel -->
+                <div id="doctor-action-panel" class="role-action-panel" style="display:none;">
+                    <div class="action-panel-header">
+                        <h3>💊 Doctor Protection</h3>
+                        <p>Protect one player from mafia attacks</p>
+                    </div>
+                    <div class="action-panel-content">
+                        <div class="target-selection">
+                            <label>Select Target to Protect:</label>
+                            <div id="doctor-target-list" class="target-list"></div>
+                        </div>
+                        <button id="doctor-confirm-btn" class="action-btn" disabled>🛡️ Protect</button>
+                    </div>
+                </div>
+
+                <!-- Townsperson Action Panel -->
+                <div id="townsperson-action-panel" class="role-action-panel" style="display:none;">
+                    <div class="action-panel-header">
+                        <h3>👥 Townsperson Night</h3>
+                        <p>Wait and observe while others make their moves</p>
+                    </div>
+                    <div class="action-panel-content">
+                        <div class="night-info">
+                            <p>As a townsperson, you have no special night actions.</p>
+                            <p>Listen carefully to what happens during the night phase.</p>
+                            <p>Use this information during the day phase to find the mafia!</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="action-info">
-                <div class="selected-character">
-                    <span>Selected: </span>
-                    <span id="selected-name">None</span>
+            <!-- Regular Day Phase Actions -->
+            <div id="day-action-panel" class="day-action-panel">
+                <div class="player-actions">
+                    <button id="mic-button" class="action-btn">🎤 Hold to Speak</button>
+                    <button id="vote-button" class="action-btn" disabled>📊 Vote</button>
+                    <button id="accuse-button" class="action-btn" disabled>👆 Accuse</button>
                 </div>
-                <div class="action-status" id="action-status">
-                    Select a character to interact with them
+
+                <div class="action-info">
+                    <div class="selected-character">
+                        <span>Selected: </span>
+                        <span id="selected-name">None</span>
+                    </div>
+                    <div class="action-status" id="action-status">
+                        Select a character to interact with them
+                    </div>
                 </div>
             </div>
         </div>

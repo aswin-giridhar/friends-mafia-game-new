@@ -1110,6 +1110,158 @@ body {
     color: white;
 }
 
+/* Role-Specific Night Action Panels */
+.night-action-panel {
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+.role-action-panel {
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid #ffd700;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.action-panel-header {
+    text-align: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+    padding-bottom: 10px;
+}
+
+.action-panel-header h3 {
+    color: #ffd700;
+    margin: 0 0 5px 0;
+    font-size: 1.2rem;
+}
+
+.action-panel-header p {
+    color: #f4e4bc;
+    margin: 0;
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+.action-panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.target-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.target-selection label {
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.target-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.target-option {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #f4e4bc;
+    font-size: 0.8rem;
+}
+
+.target-option:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: #ffd700;
+}
+
+.target-option.selected {
+    background: rgba(255, 215, 0, 0.3);
+    border-color: #ffd700;
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.target-option.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(100, 100, 100, 0.2);
+}
+
+.partner-info {
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid #ff6b6b;
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+    color: #ff6b6b;
+    font-weight: bold;
+}
+
+.night-info {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+}
+
+.night-info p {
+    color: #f4e4bc;
+    margin: 8px 0;
+    line-height: 1.4;
+}
+
+.day-action-panel {
+    display: block;
+}
+
+/* Role-specific styling */
+#mafia-action-panel {
+    border-color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+}
+
+#mafia-action-panel .action-panel-header h3 {
+    color: #ff6b6b;
+}
+
+#detective-action-panel {
+    border-color: #4ecdc4;
+    background: rgba(78, 205, 196, 0.1);
+}
+
+#detective-action-panel .action-panel-header h3 {
+    color: #4ecdc4;
+}
+
+#doctor-action-panel {
+    border-color: #4caf50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+#doctor-action-panel .action-panel-header h3 {
+    color: #4caf50;
+}
+
+#townsperson-action-panel {
+    border-color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+}
+
 /* Mobile responsive for audio panel */
 @media (max-width: 768px) {
     .audio-settings-panel {
@@ -1118,6 +1270,16 @@ body {
         top: 80px;
         height: calc(100vh - 160px);
         border-radius: 0;
+    }
+    
+    .target-list {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 8px;
+    }
+    
+    .target-option {
+        padding: 8px;
+        font-size: 0.7rem;
     }
 }
 

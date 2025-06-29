@@ -536,14 +536,188 @@ function updatePlayerRole(role) {
     }
 }
 
+// Night Action Variables
+let selectedNightTarget = null;
+let nightActionSubmitted = false;
+
+// Night Action Functions
+function showNightActionPanel(role) {
+    const nightPanel = document.getElementById('night-action-panel');
+    const dayPanel = document.getElementById('day-action-panel');
+    
+    // Hide day panel, show night panel
+    dayPanel.style.display = 'none';
+    nightPanel.style.display = 'block';
+    
+    // Hide all role panels first
+    document.querySelectorAll('.role-action-panel').forEach(panel => {
+        panel.style.display = 'none';
+    });
+    
+    // Show the appropriate role panel
+    const rolePanel = document.getElementById(`${role}-action-panel`);
+    if (rolePanel) {
+        rolePanel.style.display = 'block';
+        populateTargetList(role);
+        setupNightActionHandlers(role);
+    }
+}
+
+function hideNightActionPanel() {
+    const nightPanel = document.getElementById('night-action-panel');
+    const dayPanel = document.getElementById('day-action-panel');
+    
+    nightPanel.style.display = 'none';
+    dayPanel.style.display = 'block';
+    
+    // Reset night action state
+    selectedNightTarget = null;
+    nightActionSubmitted = false;
+}
+
+function populateTargetList(role) {
+    const targetListId = `${role}-target-list`;
+    const targetList = document.getElementById(targetListId);
+    
+    if (!targetList) return;
+    
+    targetList.innerHTML = '';
+    
+    // Get all alive players (excluding self for most roles)
+    const aliveCharacters = Array.from(document.querySelectorAll('.character-frame'))
+        .filter(frame => !frame.classList.contains('eliminated'))
+        .map(frame => frame.dataset.character);
+    
+    // Add human player to the list
+    if (window.playerData && window.playerData.name) {
+        aliveCharacters.push(window.playerData.name);
+    }
+    
+    aliveCharacters.forEach(characterName => {
+        // Skip self for mafia and detective (but allow for doctor)
+        if ((role === 'mafia' || role === 'detective') && characterName === window.playerData.name) {
+            return;
+        }
+        
+        const targetOption = document.createElement('div');
+        targetOption.className = 'target-option';
+        targetOption.textContent = characterName;
+        targetOption.dataset.target = characterName;
+        
+        targetOption.addEventListener('click', () => selectNightTarget(targetOption, role));
+        
+        targetList.appendChild(targetOption);
+    });
+}
+
+function selectNightTarget(targetElement, role) {
+    // Clear previous selection
+    const targetList = document.getElementById(`${role}-target-list`);
+    targetList.querySelectorAll('.target-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Select new target
+    targetElement.classList.add('selected');
+    selectedNightTarget = targetElement.dataset.target;
+    
+    // Enable confirm button
+    const confirmBtn = document.getElementById(`${role}-confirm-btn`);
+    if (confirmBtn) {
+        confirmBtn.disabled = false;
+    }
+}
+
+function setupNightActionHandlers(role) {
+    const confirmBtn = document.getElementById(`${role}-confirm-btn`);
+    
+    if (confirmBtn) {
+        // Remove existing event listeners
+        const newBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+        
+        // Add new event listener
+        newBtn.addEventListener('click', () => submitNightAction(role));
+    }
+    
+    // Setup mafia partner display
+    if (role === 'mafia' && window.playerData.mafiaPartners) {
+        const partnerNameElement = document.getElementById('mafia-partner-name');
+        if (partnerNameElement) {
+            const partners = window.playerData.mafiaPartners.filter(name => name !== window.playerData.name);
+            partnerNameElement.textContent = partners.join(', ') || 'Unknown';
+        }
+    }
+}
+
+function submitNightAction(role) {
+    if (!selectedNightTarget || nightActionSubmitted) return;
+    
+    const actionData = {
+        role: role,
+        target: selectedNightTarget,
+        playerId: window.playerData.id
+    };
+    
+    // Send night action to server
+    socket.emit('night-action', actionData);
+    
+    // Update UI
+    nightActionSubmitted = true;
+    const confirmBtn = document.getElementById(`${role}-confirm-btn`);
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = getActionConfirmText(role);
+    }
+    
+    // Show confirmation
+    const actionText = getActionText(role, selectedNightTarget);
+    updateDialogue(actionText);
+    showNotification(`Night action submitted: ${actionText}`, 'success');
+}
+
+function getActionText(role, target) {
+    switch (role) {
+        case 'mafia':
+            return `You chose to eliminate ${target}`;
+        case 'detective':
+            return `You chose to investigate ${target}`;
+        case 'doctor':
+            return `You chose to protect ${target}`;
+        default:
+            return `Action submitted for ${target}`;
+    }
+}
+
+function getActionConfirmText(role) {
+    switch (role) {
+        case 'mafia':
+            return '🔪 Target Selected';
+        case 'detective':
+            return '🔍 Investigation Submitted';
+        case 'doctor':
+            return '🛡️ Protection Active';
+        default:
+            return '✅ Action Submitted';
+    }
+}
+
 socket.on("phase-change", (data) => {
     updateUIForPhase(data.phase);
     currentRound.textContent = data.round;
     phaseTimer.textContent = formatTime(data.timeRemaining);
 
-    // Clear selection when phase changes
+    // Handle phase-specific UI changes
     if (data.phase === "night") {
         clearSelection();
+        
+        // Show night action panel based on player role
+        if (window.playerData && window.playerData.role) {
+            showNightActionPanel(window.playerData.role);
+        }
+    } else {
+        // Hide night action panel for non-night phases
+        hideNightActionPanel();
     }
 
     updateDialogue(

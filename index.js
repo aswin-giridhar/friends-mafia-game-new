@@ -47,6 +47,10 @@ let gameState = {
     timeRemaining: 0,
     nightActions: new Map(), // Store night actions
     votingHistory: [], // Store all voting rounds for the current game
+    chatHistory: [], // Store all chat messages for display
+    suspicionLevels: new Map(), // Track suspicion between characters
+    investigationResults: new Map(), // Store detective investigation results
+    discussionTopics: [], // Current discussion topics
     gameResults: {
         winner: null,
         reason: "",
@@ -321,6 +325,488 @@ class MCPManager {
 }
 
 const mcpManager = new MCPManager();
+
+// AI Discussion Manager - Generates automatic conversations during discussion phase
+class AIDiscussionManager {
+    constructor() {
+        this.discussionQueue = [];
+        this.activeDiscussion = null;
+        this.discussionTimer = null;
+        this.conversationHistory = [];
+    }
+
+    // Start AI discussions during discussion phase
+    startDiscussionPhase() {
+        this.generateDiscussionTopics();
+        this.scheduleDiscussions();
+    }
+
+    // Generate discussion topics based on game state, investigations, and suspicions
+    generateDiscussionTopics() {
+        const topics = [];
+        const alivePlayers = gameState.alivePlayers.filter(p => p.name); // AI characters only
+        
+        // Topic 1: Investigation-based discussions
+        if (gameState.investigationResults.size > 0) {
+            gameState.investigationResults.forEach((result, detective) => {
+                if (result.isMafia) {
+                    topics.push({
+                        type: "investigation_accusation",
+                        speaker: detective,
+                        target: result.target,
+                        priority: 100,
+                        content: `I have reason to believe ${result.target} is suspicious. Their behavior last night was very concerning.`
+                    });
+                } else {
+                    topics.push({
+                        type: "investigation_defense",
+                        speaker: detective,
+                        target: result.target,
+                        priority: 70,
+                        content: `I can vouch for ${result.target}. They seem trustworthy to me.`
+                    });
+                }
+            });
+        }
+
+        // Topic 2: Suspicion-based discussions
+        if (gameState.suspicionLevels.size > 0) {
+            const suspicions = Array.from(gameState.suspicionLevels.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3);
+            
+            suspicions.forEach(([suspectedPlayer, level]) => {
+                const accusers = alivePlayers.filter(p => Math.random() > 0.6); // Random accusers
+                accusers.forEach(accuser => {
+                    topics.push({
+                        type: "suspicion",
+                        speaker: accuser.name,
+                        target: suspectedPlayer,
+                        priority: level,
+                        content: this.generateSuspicionComment(accuser.name, suspectedPlayer, level)
+                    });
+                });
+            });
+        }
+
+        // Topic 3: Defense responses
+        const accusations = topics.filter(t => t.type === "suspicion" || t.type === "investigation_accusation");
+        accusations.forEach(accusation => {
+            const defender = alivePlayers.find(p => p.name === accusation.target);
+            if (defender) {
+                topics.push({
+                    type: "defense",
+                    speaker: accusation.target,
+                    target: accusation.speaker,
+                    priority: 80,
+                    content: this.generateDefenseResponse(accusation.target, accusation.speaker)
+                });
+            }
+        });
+
+        // Topic 4: Strategic discussions based on eliminations
+        if (gameState.eliminatedPlayers.length > 0) {
+            const lastEliminated = gameState.eliminatedPlayers[gameState.eliminatedPlayers.length - 1];
+            alivePlayers.forEach(player => {
+                if (Math.random() > 0.7) { // 30% chance each player comments
+                    topics.push({
+                        type: "elimination_analysis",
+                        speaker: player.name,
+                        target: lastEliminated.name || lastEliminated.playerName,
+                        priority: 60,
+                        content: this.generateEliminationComment(player.name, lastEliminated)
+                    });
+                }
+            });
+        }
+
+        // Topic 5: Role-based strategic comments
+        alivePlayers.forEach(player => {
+            if (player.role === "mafia") {
+                // Mafia tries to deflect suspicion
+                const innocentTargets = alivePlayers.filter(p => p.role !== "mafia" && p !== player);
+                if (innocentTargets.length > 0) {
+                    const target = innocentTargets[Math.floor(Math.random() * innocentTargets.length)];
+                    topics.push({
+                        type: "mafia_deflection",
+                        speaker: player.name,
+                        target: target.name,
+                        priority: 90,
+                        content: this.generateMafiaDeflection(player.name, target.name)
+                    });
+                }
+            } else if (player.role === "detective" && Math.random() > 0.5) {
+                // Detective shares "insights" without revealing role
+                topics.push({
+                    type: "detective_insight",
+                    speaker: player.name,
+                    target: null,
+                    priority: 75,
+                    content: this.generateDetectiveInsight(player.name)
+                });
+            }
+        });
+
+        // Sort topics by priority and store
+        this.discussionQueue = topics.sort((a, b) => b.priority - a.priority);
+        gameState.discussionTopics = this.discussionQueue;
+    }
+
+    // Schedule discussions throughout the discussion phase
+    scheduleDiscussions() {
+        const discussionDuration = GAME_CONFIG.discussionDuration * 1000; // Convert to milliseconds
+        const numDiscussions = Math.min(this.discussionQueue.length, 8); // Max 8 discussions
+        const interval = discussionDuration / (numDiscussions + 1); // Space them out
+
+        let delay = interval * 0.3; // Start after 30% of first interval
+
+        for (let i = 0; i < numDiscussions; i++) {
+            setTimeout(() => {
+                if (gameState.phase === "discussion" && this.discussionQueue.length > 0) {
+                    this.triggerDiscussion();
+                }
+            }, delay);
+            delay += interval;
+        }
+    }
+
+    // Trigger a single discussion
+    async triggerDiscussion() {
+        if (this.discussionQueue.length === 0) return;
+
+        const topic = this.discussionQueue.shift();
+        const speaker = gameState.aiPersonas.find(p => p.name === topic.speaker && p.isAlive);
+        
+        if (!speaker) return;
+
+        // Generate character-specific dialogue
+        const dialogue = this.generateCharacterDialogue(speaker, topic);
+        
+        // Add to conversation history
+        this.conversationHistory.push({
+            speaker: speaker.name,
+            content: dialogue,
+            timestamp: new Date(),
+            topic: topic.type,
+            target: topic.target
+        });
+
+        // Add to game chat history
+        gameState.chatHistory.push({
+            character: speaker.name,
+            message: dialogue,
+            timestamp: new Date(),
+            type: "ai"
+        });
+
+        // Update MCP manager history
+        mcpManager.gameHistory.push({
+            character: speaker.name,
+            message: dialogue,
+            timestamp: new Date(),
+            type: "ai"
+        });
+
+        // Generate voice and broadcast
+        try {
+            const audioBuffer = await generateVoice(dialogue, speaker.voiceId);
+            
+            io.emit("character-speaking", {
+                character: speaker.name,
+                dialogue: dialogue,
+                audio: audioBuffer ? audioBuffer.toString("base64") : null,
+            });
+
+            // Update chat history for all clients
+            io.emit('chat-history-update', mcpManager.getGameHistory());
+
+            // Update suspicion levels based on discussion
+            this.updateSuspicionLevels(topic);
+
+            setTimeout(() => io.emit("clear-speaker"), 3000);
+        } catch (error) {
+            console.error("Error generating discussion audio:", error);
+        }
+
+        // Trigger responses from other characters
+        setTimeout(() => {
+            this.triggerResponse(topic);
+        }, 4000);
+    }
+
+    // Generate character-specific dialogue based on personality
+    generateCharacterDialogue(speaker, topic) {
+        const characterData = friendsCharacters[speaker.name];
+        let baseDialogue = topic.content;
+
+        // Customize dialogue based on character personality
+        switch (speaker.name) {
+            case "Joey":
+                return this.joeyifyDialogue(baseDialogue, topic);
+            case "Phoebe":
+                return this.phoebeifyDialogue(baseDialogue, topic);
+            case "Chandler":
+                return this.chandlerifyDialogue(baseDialogue, topic);
+            case "Rachel":
+                return this.rachelifyDialogue(baseDialogue, topic);
+            case "Ross":
+                return this.rossifyDialogue(baseDialogue, topic);
+            case "Monica":
+                return this.monicaifyDialogue(baseDialogue, topic);
+            default:
+                return baseDialogue;
+        }
+    }
+
+    joeyifyDialogue(dialogue, topic) {
+        if (topic.type === "suspicion") {
+            return `I don't know about all this detective stuff, but ${topic.target} has been acting weird. Like, weirder than usual. And that's saying something!`;
+        } else if (topic.type === "defense") {
+            return `Hey, hey, hey! Why is everyone picking on me? I'm just trying to figure out who's the bad guy here. Can we discuss this over sandwiches?`;
+        } else if (topic.type === "mafia_deflection") {
+            return `You know what? I think we should look at ${topic.target}. They've been way too quiet. Suspicious people are quiet, right?`;
+        }
+        return `${dialogue} Also, is anyone else hungry right now?`;
+    }
+
+    phoebeifyDialogue(dialogue, topic) {
+        if (topic.type === "suspicion") {
+            return `My spirit guide is telling me that ${topic.target} has some seriously dark energy around them. Like, really dark. Darker than my grandmother's basement.`;
+        } else if (topic.type === "defense") {
+            return `Okay, first of all, accusing me is like, really bad karma. The universe doesn't like finger-pointers. Second, I would never hurt anyone - I'm a vegetarian!`;
+        } else if (topic.type === "detective_insight") {
+            return `I had this dream last night where someone was wearing a mask, but I couldn't see who it was. But the vibes were definitely evil. Very evil vibes.`;
+        }
+        return `${dialogue} The crystals are very active today, which means someone's lying.`;
+    }
+
+    chandlerifyDialogue(dialogue, topic) {
+        if (topic.type === "suspicion") {
+            return `Could ${topic.target} BE any more suspicious? I mean, seriously, their behavior is like a textbook case of 'how to act guilty 101'.`;
+        } else if (topic.type === "defense") {
+            return `Could this BE any more ridiculous? I'm being accused of being mafia? What's next, someone's gonna blame me for the Y2K bug?`;
+        } else if (topic.type === "mafia_deflection") {
+            return `I'm not saying ${topic.target} is definitely mafia, but if I had to bet my statistical analysis software on it... well, let's just say the odds aren't in their favor.`;
+        }
+        return `${dialogue} Could this situation BE any more confusing?`;
+    }
+
+    rachelifyDialogue(dialogue, topic) {
+        if (topic.type === "suspicion") {
+            return `OMG, ${topic.target} is totally acting shady! Like, shadier than when I tried to return that dress I wore to Barry's wedding. Something is definitely not right here!`;
+        } else if (topic.type === "defense") {
+            return `Excuse me? I am NOT mafia! I work in fashion, not... whatever evil people do! This is so unfair!`;
+        } else if (topic.type === "elimination_analysis") {
+            return `I can't believe ${topic.target} is gone! This is like, worse than when Central Perk ran out of non-fat milk. We need to figure this out!`;
+        }
+        return `${dialogue} This is so stressful, I need a shopping break!`;
+    }
+
+    rossifyDialogue(dialogue, topic) {
+        if (topic.type === "suspicion") {
+            return `From a scientific perspective, ${topic.target}'s behavioral patterns are consistent with deceptive tendencies. It's like studying predator-prey relationships in the Cretaceous period.`;
+        } else if (topic.type === "defense") {
+            return `This accusation is completely unfounded! I have three degrees and I would never engage in such duplicitous behavior. This is more frustrating than when they moved my dinosaur exhibit!`;
+        } else if (topic.type === "detective_insight") {
+            return `As someone who studies ancient civilizations, I can tell you that deception has been a human trait for millennia. We need to analyze the evidence methodically.`;
+        }
+        return `${dialogue} Paleontologically speaking, this situation is fascinating yet terrifying.`;
+    }
+
+    monicaifyDialogue(dialogue, topic) {
+        if (topic.type === "suspicion") {
+            return `I KNOW ${topic.target} is lying! I can always tell when people aren't being honest - it's like my superpower! We need to vote them out NOW!`;
+        } else if (topic.type === "defense") {
+            return `How DARE you accuse me! I am the most honest person here! I organize, I clean, I take care of everyone - I would NEVER be mafia!`;
+        } else if (topic.type === "mafia_deflection") {
+            return `We need to be systematic about this! ${topic.target} has been acting suspicious and we need to eliminate threats efficiently!`;
+        }
+        return `${dialogue} We need rules and structure to catch the mafia!`;
+    }
+
+    // Generate suspicion comments based on character and suspicion level
+    generateSuspicionComment(speaker, target, level) {
+        const comments = [
+            `${target} has been acting really strange lately.`,
+            `I don't trust ${target}. Something feels off about them.`,
+            `Has anyone else noticed how quiet ${target} has been?`,
+            `${target}'s behavior last round was very suspicious.`,
+            `I think we should keep an eye on ${target}.`
+        ];
+        return comments[Math.floor(Math.random() * comments.length)];
+    }
+
+    // Generate defense responses
+    generateDefenseResponse(defender, accuser) {
+        const responses = [
+            `Why are you targeting me, ${accuser}? That's pretty suspicious if you ask me.`,
+            `I'm innocent! ${accuser} is just trying to deflect attention from themselves.`,
+            `This accusation is completely unfair, ${accuser}. I've been trying to help!`,
+            `${accuser}, you're making a huge mistake. I'm on your side!`,
+            `I can't believe you're accusing me, ${accuser}. We need to work together!`
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    // Generate elimination analysis comments
+    generateEliminationComment(speaker, eliminated) {
+        const comments = [
+            `I can't believe ${eliminated.name || eliminated.playerName} is gone. They seemed so innocent.`,
+            `Maybe eliminating ${eliminated.name || eliminated.playerName} was a mistake.`,
+            `${eliminated.name || eliminated.playerName}'s elimination tells us something about who voted for them.`,
+            `We need to learn from what happened to ${eliminated.name || eliminated.playerName}.`,
+            `The fact that ${eliminated.name || eliminated.playerName} was eliminated makes me suspicious of their accusers.`
+        ];
+        return comments[Math.floor(Math.random() * comments.length)];
+    }
+
+    // Generate mafia deflection comments
+    generateMafiaDeflection(speaker, target) {
+        const deflections = [
+            `I think we're looking at the wrong person. ${target} has been way too quiet.`,
+            `${target} is the one we should be worried about, not me.`,
+            `Has anyone else noticed how ${target} always deflects when questioned?`,
+            `${target}'s voting patterns have been very suspicious.`,
+            `We should focus on ${target} - they're the real threat here.`
+        ];
+        return deflections[Math.floor(Math.random() * deflections.length)];
+    }
+
+    // Generate detective insights without revealing role
+    generateDetectiveInsight(speaker) {
+        const insights = [
+            `I've been watching everyone carefully, and I have some concerns about certain people.`,
+            `Based on what I've observed, I think we need to be more careful about who we trust.`,
+            `I've noticed some patterns in behavior that are concerning.`,
+            `My instincts are telling me that someone here is definitely not who they seem.`,
+            `I think we need to pay more attention to the details of what people say and do.`
+        ];
+        return insights[Math.floor(Math.random() * insights.length)];
+    }
+
+    // Trigger responses from other characters
+    async triggerResponse(originalTopic) {
+        if (gameState.phase !== "discussion") return;
+
+        const respondents = gameState.aiPersonas.filter(p => 
+            p.isAlive && 
+            p.name !== originalTopic.speaker && 
+            Math.random() > 0.7 // 30% chance to respond
+        );
+
+        for (const respondent of respondents.slice(0, 2)) { // Max 2 responses
+            setTimeout(async () => {
+                if (gameState.phase !== "discussion") return;
+
+                const response = this.generateResponse(respondent, originalTopic);
+                
+                // Add to histories
+                this.conversationHistory.push({
+                    speaker: respondent.name,
+                    content: response,
+                    timestamp: new Date(),
+                    topic: "response",
+                    target: originalTopic.speaker
+                });
+
+                gameState.chatHistory.push({
+                    character: respondent.name,
+                    message: response,
+                    timestamp: new Date(),
+                    type: "ai"
+                });
+
+                mcpManager.gameHistory.push({
+                    character: respondent.name,
+                    message: response,
+                    timestamp: new Date(),
+                    type: "ai"
+                });
+
+                try {
+                    const audioBuffer = await generateVoice(response, respondent.voiceId);
+                    
+                    io.emit("character-speaking", {
+                        character: respondent.name,
+                        dialogue: response,
+                        audio: audioBuffer ? audioBuffer.toString("base64") : null,
+                    });
+
+                    io.emit('chat-history-update', mcpManager.getGameHistory());
+                    setTimeout(() => io.emit("clear-speaker"), 3000);
+                } catch (error) {
+                    console.error("Error generating response audio:", error);
+                }
+            }, Math.random() * 3000 + 1000); // Random delay 1-4 seconds
+        }
+    }
+
+    // Generate responses to topics
+    generateResponse(respondent, originalTopic) {
+        if (originalTopic.target === respondent.name) {
+            // Direct response to being accused/mentioned
+            return this.generateCharacterDialogue(respondent, {
+                type: "defense",
+                speaker: respondent.name,
+                target: originalTopic.speaker,
+                content: `I disagree with ${originalTopic.speaker}.`
+            });
+        } else if (originalTopic.type === "suspicion" && respondent.role === "mafia") {
+            // Mafia supports accusations against innocents
+            return this.generateCharacterDialogue(respondent, {
+                type: "mafia_support",
+                speaker: respondent.name,
+                target: originalTopic.target,
+                content: `I agree with ${originalTopic.speaker}. ${originalTopic.target} does seem suspicious.`
+            });
+        } else {
+            // General agreement or disagreement
+            const agree = Math.random() > 0.5;
+            const response = agree ? 
+                `I think ${originalTopic.speaker} makes a good point.` :
+                `I'm not sure I agree with ${originalTopic.speaker} on this one.`;
+            
+            return this.generateCharacterDialogue(respondent, {
+                type: "general_response",
+                speaker: respondent.name,
+                target: originalTopic.speaker,
+                content: response
+            });
+        }
+    }
+
+    // Update suspicion levels based on discussions
+    updateSuspicionLevels(topic) {
+        if (topic.type === "suspicion" || topic.type === "investigation_accusation") {
+            const currentLevel = gameState.suspicionLevels.get(topic.target) || 0;
+            gameState.suspicionLevels.set(topic.target, currentLevel + 10);
+        } else if (topic.type === "defense") {
+            const currentLevel = gameState.suspicionLevels.get(topic.speaker) || 0;
+            gameState.suspicionLevels.set(topic.speaker, Math.max(0, currentLevel - 5));
+        }
+    }
+
+    // Store investigation results for future discussions
+    storeInvestigationResult(detective, target, isMafia) {
+        gameState.investigationResults.set(detective, {
+            target: target,
+            isMafia: isMafia,
+            round: gameState.round
+        });
+    }
+
+    // Clear discussion data for new round
+    clearDiscussionData() {
+        this.discussionQueue = [];
+        this.conversationHistory = [];
+        if (this.discussionTimer) {
+            clearTimeout(this.discussionTimer);
+            this.discussionTimer = null;
+        }
+    }
+}
+
+const aiDiscussionManager = new AIDiscussionManager();
 
 // Enhanced AI Strategy Functions with Role-Based Intelligence
 function selectStrategicMafiaTarget(aliveTargets, aliveMafia) {
@@ -805,6 +1291,18 @@ function processNightActions() {
         return;
     }
 
+    // Store investigation results for AI discussions
+    if (detectiveCheck) {
+        const detective = gameState.alivePlayers.find(p => p.role === "detective");
+        if (detective) {
+            aiDiscussionManager.storeInvestigationResult(
+                detective.name || detective.playerName,
+                detectiveCheck.name || detectiveCheck.playerName,
+                detectiveCheck.role === "mafia"
+            );
+        }
+    }
+
     // Send public night results to all players
     io.emit("night-results", {
         narrative: narrative,
@@ -822,6 +1320,13 @@ function processNightActions() {
     });
 
     startPhase("discussion", GAME_CONFIG.discussionDuration);
+    
+    // Start AI discussions during discussion phase
+    setTimeout(() => {
+        if (gameState.phase === "discussion") {
+            aiDiscussionManager.startDiscussionPhase();
+        }
+    }, 2000); // Start discussions 2 seconds into discussion phase
 }
 
 function startVotingPhase() {
@@ -944,6 +1449,9 @@ function processVotes() {
     gameState.mafiaTarget = null;
     gameState.doctorSave = null;
     gameState.detectiveCheck = null;
+
+    // Clear discussion data for new round
+    aiDiscussionManager.clearDiscussionData();
 
     setTimeout(() => {
         startPhase("night", GAME_CONFIG.nightPhaseDuration);

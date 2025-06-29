@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central Perk Mafia - Friends Edition</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Game Header with Phase Info -->
+        <header class="game-header">
+            <h1 class="game-title">Central Perk Mafia: Friends Edition</h1>
+            <div class="game-info">
+                <div class="phase-display">
+                    <span class="phase-label">Phase:</span>
+                    <span id="current-phase" class="phase-value"><%= gameState.phase %></span>
+                </div>
+                <div class="round-display">
+                    <span class="round-label">Round:</span>
+                    <span id="current-round" class="round-value"><%= gameState.round %></span>
+                </div>
+                <div class="timer-display">
+                    <span class="timer-label">Time:</span>
+                    <span id="phase-timer" class="timer-value">--:--</span>
+                </div>
+            </div>
+            <div class="player-info">
+                <img src="/images/players/<%= player.photo %>" alt="<%= player.playerName %>" class="player-avatar">
+                <span class="player-name">Welcome, <%= player.playerName %>!</span>
+                <span class="player-status" id="player-status">Alive</span>
+            </div>
+        </header>
+
+        <!-- Game Status Bar -->
+        <div class="status-bar">
+            <div class="alive-count">
+                <span>👥 Alive: <span id="alive-count"><%= gameState.alivePlayers %></span></span>
+            </div>
+            <div class="phase-instructions" id="phase-instructions">
+                Welcome to Central Perk Mafia! Click "Start Game" to begin.
+            </div>
+            <div class="game-controls-mini">
+                <button id="start-game-btn" class="mini-btn">🎮 Start Game</button>
+                <button id="end-game-btn" class="mini-btn" style="display:none;">🛑 End Game</button>
+            </div>
+        </div>
+
+        <!-- Portrait Gallery Section -->
+        <div class="portrait-gallery">
+            <div class="gallery-background">
+                <% personas.forEach((persona, index) => { %>
+                <div class="character-frame" 
+                     id="character-<%= index %>" 
+                     data-character="<%= persona.name %>"
+                     data-role="<%= persona.role || 'unknown' %>">
+                    <div class="portrait-container">
+                        <img src="/images/characters/<%= persona.image %>" 
+                             alt="<%= persona.name %>" 
+                             class="character-portrait">
+                        <div class="speaking-indicator"></div>
+                        <div class="character-name"><%= persona.name %></div>
+                        <div class="character-status">
+                            <span class="status-indicator alive">●</span>
+                            <span class="vote-count">0 votes</span>
+                        </div>
+                        <div class="elimination-overlay" style="display:none;">
+                            <span class="eliminated-text">ELIMINATED</span>
+                        </div>
+                    </div>
+                </div>
+                <% }); %>
+            </div>
+        </div>
+
+        <!-- Enhanced Game Controls -->
+        <div class="game-controls">
+            <div class="dialogue-box">
+                <div id="current-dialogue">Welcome to Central Perk Mafia! Get ready for a game of deception and strategy.</div>
+            </div>
+
+            <div class="player-actions">
+                <button id="mic-button" class="action-btn">🎤 Hold to Speak</button>
+                <button id="vote-button" class="action-btn" disabled>📊 Vote</button>
+                <button id="accuse-button" class="action-btn" disabled>👆 Accuse</button>
+            </div>
+
+            <div class="action-info">
+                <div class="selected-character">
+                    <span>Selected: </span>
+                    <span id="selected-name">None</span>
+                </div>
+                <div class="action-status" id="action-status">
+                    Select a character to interact with them
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Results Modal -->
+        <div id="game-results-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <h2 id="game-result-title">Game Over!</h2>
+                <div id="game-result-content"></div>
+                <button id="play-again-btn" class="action-btn">🔄 Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden player data for JavaScript -->
+    <script>
+        window.playerData = {
+            id: '<%= player.id %>',
+            name: '<%= player.playerName %>',
+            isAlive: <%= player.isAlive %>
+        };
+        window.gameState = {
+            phase: '<%= gameState.phase %>',
+            round: <%= gameState.round %>,
+            alivePlayers: <%= gameState.alivePlayers %>
+        };
+    </script>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/game.js"></script>
+</body>
+</html>

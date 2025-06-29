@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends Mafia Game - Player Setup</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-card">
+            <h1 class="setup-title">Central Perk Mafia</h1>
+            <h2 class="setup-subtitle">Friends Edition</h2>
+
+            <div class="friends-logo">
+                <span class="friends-dot">•</span>
+                <span class="friends-dot">•</span>
+                <span class="friends-dot">•</span>
+                <span class="friends-dot">•</span>
+                <span class="friends-dot">•</span>
+                <span class="friends-dot">•</span>
+            </div>
+
+            <form action="/start-game" method="POST" enctype="multipart/form-data" class="setup-form">
+                <div class="form-group">
+                    <label for="playerName">Enter Your Name:</label>
+                    <input type="text" id="playerName" name="playerName" required placeholder="Your name..." class="name-input">
+                </div>
+
+                <div class="form-group">
+                    <label for="playerPhoto">Upload Your Photo (Optional):</label>
+                    <input type="file" id="playerPhoto" name="playerPhoto" accept="image/*" class="photo-input">
+                    <div class="file-hint">JPG, PNG, or GIF (Max 5MB)</div>
+                </div>
+
+                <button type="submit" class="start-btn">
+                    🎮 Start Game
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
